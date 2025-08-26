@@ -1,30 +1,37 @@
 {
-  "name": "regima-site-cognitive",
+  "name": "regimai-gateway",
   "version": "1.0.0",
-  "description": "RegimA.site cognitive architecture layer for SkinTwin inference",
+  "description": "RegimAI Gateway - AI Gateway for dermatology and skincare cognitive services",
   "main": "index.js",
   "scripts": {
     "build": "node scripts/build.js",
     "dev": "node scripts/dev-server.js",
+    "gateway": "node scripts/gateway-server.js",
     "generate-sitemap": "node scripts/generate-sitemap.js",
     "cognitive-sync": "node scripts/cognitive-sync.js",
     "test": "node scripts/test.js"
   },
   "keywords": [
+    "ai-gateway",
     "regima",
     "skincare",
     "cognitive-architecture",
     "skintwin",
     "opencog",
-    "dermatology"
+    "dermatology",
+    "ai-services",
+    "api-management"
   ],
   "author": "RegimA Zone",
   "license": "MIT",
   "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "cors": "^2.8.5",
     "express": "^4.18.2",
     "fs-extra": "^11.1.1",
+    "helmet": "^7.2.0",
     "marked": "^9.1.2",
-    "cheerio": "^1.0.0-rc.12",
+    "winston": "^3.17.0",
     "xml2js": "^0.6.2"
   },
   "devDependencies": {

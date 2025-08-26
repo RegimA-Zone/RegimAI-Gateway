@@ -1,0 +1,178 @@
+{
+  "gateway": {
+    "name": "RegimAI Gateway",
+    "description": "AI Gateway for dermatology and skincare cognitive services",
+    "version": "1.0.0",
+    "domain": "dermatology",
+    "cognitiveArchitecture": "skintwin"
+  },
+  "services": {
+    "ai-models": {
+      "openai": {
+        "endpoint": "/v1/openai",
+        "description": "OpenAI models for dermatology consultations",
+        "models": ["gpt-4", "gpt-3.5-turbo", "text-embedding-ada-002"],
+        "policies": ["content-safety", "dermatology-domain", "token-limits"]
+      },
+      "azure-openai": {
+        "endpoint": "/v1/azure-openai", 
+        "description": "Azure OpenAI for enterprise dermatology services",
+        "models": ["gpt-4", "gpt-35-turbo", "text-embedding-ada-002"],
+        "policies": ["content-safety", "dermatology-domain", "authentication"]
+      },
+      "cognitive-services": {
+        "endpoint": "/v1/cognitive",
+        "description": "Azure Cognitive Services for image analysis",
+        "services": ["computer-vision", "custom-vision", "face-api"],
+        "policies": ["image-safety", "privacy-protection"]
+      }
+    },
+    "ai-agents": {
+      "skincare-consultant": {
+        "endpoint": "/agents/skincare-consultant",
+        "description": "AI agent for personalized skincare consultations",
+        "capabilities": ["routine-analysis", "product-recommendation", "concern-assessment"],
+        "policies": ["medical-disclaimer", "privacy-protection", "content-safety"]
+      },
+      "dermatology-assistant": {
+        "endpoint": "/agents/dermatology-assistant", 
+        "description": "Professional dermatology assistant for healthcare providers",
+        "capabilities": ["diagnosis-support", "treatment-planning", "research-analysis"],
+        "policies": ["medical-compliance", "authentication", "audit-logging"]
+      },
+      "product-advisor": {
+        "endpoint": "/agents/product-advisor",
+        "description": "Product recommendation agent",
+        "capabilities": ["ingredient-analysis", "product-matching", "routine-optimization"],
+        "policies": ["commercial-transparency", "content-safety"]
+      }
+    },
+    "data-services": {
+      "vector-store": {
+        "endpoint": "/data/vectors",
+        "description": "Vector database for skincare knowledge",
+        "capabilities": ["similarity-search", "knowledge-retrieval"],
+        "policies": ["data-privacy", "access-control"]
+      },
+      "knowledge-graph": {
+        "endpoint": "/data/knowledge",
+        "description": "SkinTwin cognitive knowledge graph",
+        "capabilities": ["relationship-queries", "inference-reasoning"],
+        "policies": ["knowledge-integrity", "access-control"]
+      }
+    },
+    "tools": {
+      "image-analysis": {
+        "endpoint": "/tools/image-analysis",
+        "description": "Skin image analysis and assessment",
+        "capabilities": ["condition-detection", "progress-tracking"],
+        "policies": ["medical-disclaimer", "privacy-protection", "image-safety"]
+      },
+      "routine-generator": {
+        "endpoint": "/tools/routine-generator",
+        "description": "Personalized skincare routine generation",
+        "capabilities": ["routine-creation", "product-selection", "scheduling"],
+        "policies": ["personalization-consent", "commercial-transparency"]
+      }
+    }
+  },
+  "policies": {
+    "content-safety": {
+      "description": "Content safety filtering for dermatology domain",
+      "rules": [
+        "block-harmful-medical-advice",
+        "filter-inappropriate-content",
+        "validate-medical-accuracy"
+      ]
+    },
+    "dermatology-domain": {
+      "description": "Domain-specific validation for dermatology content",
+      "rules": [
+        "validate-medical-terminology",
+        "ensure-evidence-based-recommendations",
+        "require-medical-disclaimers"
+      ]
+    },
+    "privacy-protection": {
+      "description": "Privacy protection for sensitive health data",
+      "rules": [
+        "anonymize-personal-data",
+        "encrypt-health-information",
+        "comply-with-hipaa"
+      ]
+    },
+    "authentication": {
+      "description": "Authentication and authorization policies",
+      "rules": [
+        "require-api-key",
+        "validate-user-permissions",
+        "rate-limit-by-user"
+      ]
+    },
+    "medical-compliance": {
+      "description": "Medical compliance and regulatory adherence",
+      "rules": [
+        "fda-compliance-check",
+        "medical-device-regulations",
+        "professional-licensing-validation"
+      ]
+    },
+    "token-limits": {
+      "description": "Token usage limits and optimization",
+      "rules": [
+        "enforce-token-quotas",
+        "optimize-prompt-efficiency",
+        "monitor-usage-patterns"
+      ]
+    }
+  },
+  "routing": {
+    "load-balancing": {
+      "strategy": "cognitive-aware",
+      "rules": [
+        "route-by-complexity",
+        "prefer-domain-specialized-models",
+        "failover-to-backup-services"
+      ]
+    },
+    "rate-limiting": {
+      "global": "1000/hour",
+      "per-service": "100/hour",
+      "per-user": "50/hour"
+    },
+    "circuit-breaker": {
+      "enabled": true,
+      "failure-threshold": 5,
+      "recovery-timeout": "30s"
+    }
+  },
+  "monitoring": {
+    "metrics": [
+      "request-count",
+      "response-time",
+      "error-rate",
+      "token-usage",
+      "cognitive-accuracy"
+    ],
+    "logging": {
+      "level": "info",
+      "include-request-body": false,
+      "include-response-body": false,
+      "audit-trail": true
+    }
+  },
+  "integration": {
+    "skintwin": {
+      "enabled": true,
+      "atomspace-endpoint": "/cognitive/atomspace",
+      "pln-reasoning": "/cognitive/reasoning",
+      "pattern-mining": "/cognitive/patterns"
+    },
+    "regima-platform": {
+      "enabled": true,
+      "user-profiles": "/platform/users",
+      "product-catalog": "/platform/products",
+      "consultation-history": "/platform/consultations"
+    }
+  }
+}

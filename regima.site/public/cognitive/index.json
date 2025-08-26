@@ -1,0 +1,88 @@
+{
+  "version": "1.0",
+  "generatedAt": "2025-08-26T14:19:08.460Z",
+  "architecture": "SkinTwin",
+  "components": {
+    "atomspace": "Knowledge representation layer",
+    "pln": "Probabilistic logic networks for reasoning",
+    "moses": "Pattern mining and optimization",
+    "esn": "Echo state networks for temporal prediction"
+  },
+  "domain": "dermatology",
+  "knowledge": {
+    "entities": [
+      "skincare",
+      "anti-ageing",
+      "acne",
+      "pigmentation",
+      "wrinkles",
+      "moisturizer",
+      "serum",
+      "cleanser",
+      "sunscreen",
+      "retinol",
+      "vitamin-c",
+      "hyaluronic-acid",
+      "collagen",
+      "peptides"
+    ],
+    "relationships": [
+      {
+        "source": "retinol",
+        "target": "anti-ageing",
+        "type": "treats",
+        "strength": 0.9
+      },
+      {
+        "source": "vitamin-c",
+        "target": "pigmentation",
+        "type": "treats",
+        "strength": 0.8
+      },
+      {
+        "source": "hyaluronic-acid",
+        "target": "hydration",
+        "type": "provides",
+        "strength": 0.95
+      },
+      {
+        "source": "sunscreen",
+        "target": "prevention",
+        "type": "enables",
+        "strength": 0.9
+      }
+    ],
+    "categories": [
+      "anti-ageing",
+      "day-preparations",
+      "night-preparations",
+      "eye-care",
+      "in-salon-treatments",
+      "pigmentation",
+      "problem-skin",
+      "repairing",
+      "cleansing-toning",
+      "classic"
+    ]
+  },
+  "inference": {
+    "rules": [
+      "IF age > 30 AND concern = wrinkles THEN recommend anti-ageing",
+      "IF skin-type = oily AND concern = acne THEN recommend problem-skin",
+      "IF concern = pigmentation THEN recommend vitamin-c + sunscreen"
+    ]
+  },
+  "api": {
+    "endpoint": "/cognitive/api/",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "capabilities": [
+      "search",
+      "recommend",
+      "analyze",
+      "predict"
+    ]
+  }
+}

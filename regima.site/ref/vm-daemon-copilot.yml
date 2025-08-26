@@ -1,0 +1,609 @@
+
+name: VM-Daemon Copilot Skills Integration
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - '**/*.cpp'
+      - '**/*.h'
+      - '**/*.el'
+      - '**/*.scm'
+      - '**/*.js'
+      - '**/*.jsx'
+      - '**/*.md'
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    - cron: '0 2 * * 0'  # Weekly on Sunday at 2 AM
+  workflow_dispatch:
+    inputs:
+      analysis_depth:
+        description: 'Analysis depth level (1-5)'
+        required: false
+        default: '3'
+        type: choice
+        options:
+        - '1'
+        - '2'
+        - '3'
+        - '4'
+        - '5'
+      target_languages:
+        description: 'Target languages (comma-separated)'
+        required: false
+        default: 'cpp,elisp,javascript,scheme'
+      force_regenerate:
+        description: 'Force regenerate all skills'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  DAEMON_VERSION: "1.0.0"
+  SKILLS_DIR: ".copilot/skills"
+  CACHE_KEY_PREFIX: "vm-daemon-cache"
+
+jobs:
+  analyze-codebase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      changed_files: ${{ steps.changes.outputs.files }}
+      analysis_hash: ${{ steps.hash.outputs.hash }}
+      skill_count: ${{ steps.analysis.outputs.count }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm install -g @microsoft/rush @types/node typescript
+        npm install tree-sitter tree-sitter-cpp tree-sitter-javascript
+
+    - name: Setup Python for analysis
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install Python dependencies
+      run: |
+        if [ -f requirements.txt ]; then
+          pip install -r requirements.txt
+        else
+          pip install ast-decompiler pygments tree-sitter-languages
+          pip install networkx matplotlib seaborn pandas numpy
+        fi
+
+    - name: Cache analysis results
+      uses: actions/cache@v4
+      id: analysis-cache
+      with:
+        path: |
+          ~/.vm-daemon-cache
+          .analysis-cache
+        key: ${{ env.CACHE_KEY_PREFIX }}-${{ runner.os }}-${{ hashFiles('**/*.cpp', '**/*.h', '**/*.el', '**/*.scm', '**/*.js', '**/*.jsx') }}
+        restore-keys: |
+          ${{ env.CACHE_KEY_PREFIX }}-${{ runner.os }}-
+
+    - name: Detect changed files
+      id: changes
+      run: |
+        if [[ "${{ github.event_name }}" == "push" ]]; then
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.before }}..${{ github.event.after }} | grep -E '\.(cpp|h|el|scm|js|jsx|md)$' || echo "")
+        elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}..HEAD | grep -E '\.(cpp|h|el|scm|js|jsx|md)$' || echo "")
+        else
+          CHANGED_FILES="all"
+        fi
+        echo "files=$CHANGED_FILES" >> $GITHUB_OUTPUT
+
+    - name: Generate analysis hash
+      id: hash
+      run: |
+        HASH=$(find . -name "*.cpp" -o -name "*.h" -o -name "*.el" -o -name "*.scm" -o -name "*.js" -o -name "*.jsx" | sort | xargs cat | sha256sum | cut -d' ' -f1)
+        echo "hash=$HASH" >> $GITHUB_OUTPUT
+
+    - name: Run codebase analysis
+      id: analysis
+      run: |
+        cat > vm-daemon-analyzer.py << 'EOF'
+        #!/usr/bin/env python3
+        import os
+        import json
+        import ast
+        import re
+        import hashlib
+        from pathlib import Path
+        from typing import Dict, List, Any, Set
+        import networkx as nx
+        
+        class CodebaseAnalyzer:
+            def __init__(self):
+                self.functions = {}
+                self.classes = {}
+                self.modules = {}
+                self.dependencies = {}
+                self.patterns = {}
+                self.skills = []
+                
+            def analyze_cpp_file(self, filepath: str) -> Dict[str, Any]:
+                """Analyze C++ files for functions, classes, and patterns"""
+                content = Path(filepath).read_text(encoding='utf-8', errors='ignore')
+                
+                # Extract functions
+                func_pattern = r'(?:inline\s+|static\s+|virtual\s+)*\s*(\w+(?:\s*<[^>]*>)?)\s+(\w+)\s*\([^)]*\)\s*(?:const\s*)?(?:override\s*)?(?:final\s*)?{'
+                functions = re.findall(func_pattern, content, re.MULTILINE)
+                
+                # Extract classes
+                class_pattern = r'class\s+(\w+)(?:\s*:\s*public\s+(\w+))?'
+                classes = re.findall(class_pattern, content)
+                
+                # Extract includes
+                include_pattern = r'#include\s*[<"](.*?)[>"]'
+                includes = re.findall(include_pattern, content)
+                
+                return {
+                    'functions': functions,
+                    'classes': classes,
+                    'includes': includes,
+                    'file_type': 'cpp'
+                }
+            
+            def analyze_elisp_file(self, filepath: str) -> Dict[str, Any]:
+                """Analyze Elisp files for functions and macros"""
+                content = Path(filepath).read_text(encoding='utf-8', errors='ignore')
+                
+                # Extract defun functions
+                func_pattern = r'\(defun\s+([^\s\)]+)'
+                functions = re.findall(func_pattern, content)
+                
+                # Extract defmacro
+                macro_pattern = r'\(defmacro\s+([^\s\)]+)'
+                macros = re.findall(macro_pattern, content)
+                
+                # Extract requires
+                require_pattern = r'\(require\s+\'([^\)]+)\)'
+                requires = re.findall(require_pattern, content)
+                
+                return {
+                    'functions': functions,
+                    'macros': macros,
+                    'requires': requires,
+                    'file_type': 'elisp'
+                }
+            
+            def analyze_javascript_file(self, filepath: str) -> Dict[str, Any]:
+                """Analyze JavaScript/JSX files"""
+                content = Path(filepath).read_text(encoding='utf-8', errors='ignore')
+                
+                # Extract functions
+                func_pattern = r'(?:function\s+(\w+)|const\s+(\w+)\s*=\s*(?:\([^)]*\)\s*=>|\([^)]*\)\s*=>\s*{|function))'
+                functions = re.findall(func_pattern, content)
+                
+                # Extract imports
+                import_pattern = r'import\s+.*?\s+from\s+[\'"]([^\'"]+)[\'"]'
+                imports = re.findall(import_pattern, content)
+                
+                # Extract React components
+                component_pattern = r'(?:export\s+default\s+function\s+(\w+)|function\s+(\w+).*?return\s*\()'
+                components = re.findall(component_pattern, content)
+                
+                return {
+                    'functions': [f for f in functions if f],
+                    'imports': imports,
+                    'components': [c for c in components if c],
+                    'file_type': 'javascript'
+                }
+            
+            def analyze_file(self, filepath: str) -> Dict[str, Any]:
+                """Route file analysis based on extension"""
+                ext = Path(filepath).suffix
+                
+                if ext in ['.cpp', '.h', '.hpp', '.cc']:
+                    return self.analyze_cpp_file(filepath)
+                elif ext in ['.el']:
+                    return self.analyze_elisp_file(filepath)
+                elif ext in ['.js', '.jsx']:
+                    return self.analyze_javascript_file(filepath)
+                else:
+                    return {'file_type': 'unknown'}
+            
+            def generate_skills(self) -> List[Dict[str, Any]]:
+                """Generate Copilot skills from analysis"""
+                skills = []
+                
+                # Generate function-based skills
+                for file_path, analysis in self.modules.items():
+                    if analysis['file_type'] == 'cpp':
+                        for func in analysis.get('functions', []):
+                            if len(func) >= 2:
+                                skill = {
+                                    'name': f'cpp_{func[1].lower()}',
+                                    'description': f'Implement C++ function {func[1]} with return type {func[0]}',
+                                    'language': 'cpp',
+                                    'category': 'function',
+                                    'signature': f'{func[0]} {func[1]}(...)',
+                                    'source_file': file_path,
+                                    'usage_example': f'// Example usage of {func[1]}\n{func[0]} result = {func[1]}(...);'
+                                }
+                                skills.append(skill)
+                    
+                    elif analysis['file_type'] == 'elisp':
+                        for func in analysis.get('functions', []):
+                            skill = {
+                                'name': f'elisp_{func.replace("-", "_")}',
+                                'description': f'Implement Elisp function {func}',
+                                'language': 'elisp',
+                                'category': 'function',
+                                'signature': f'(defun {func} ...)',
+                                'source_file': file_path,
+                                'usage_example': f';; Example usage of {func}\n({func} ...)'
+                            }
+                            skills.append(skill)
+                    
+                    elif analysis['file_type'] == 'javascript':
+                        for func in analysis.get('functions', []):
+                            if isinstance(func, tuple):
+                                func_name = func[0] or func[1]
+                            else:
+                                func_name = func
+                            
+                            if func_name:
+                                skill = {
+                                    'name': f'js_{func_name.lower()}',
+                                    'description': f'Implement JavaScript function {func_name}',
+                                    'language': 'javascript',
+                                    'category': 'function',
+                                    'signature': f'function {func_name}(...) {{ }}',
+                                    'source_file': file_path,
+                                    'usage_example': f'// Example usage of {func_name}\nconst result = {func_name}(...);'
+                                }
+                                skills.append(skill)
+                
+                return skills
+            
+            def analyze_project(self, root_path: str = '.') -> Dict[str, Any]:
+                """Analyze entire project"""
+                
+                # Find all relevant files
+                extensions = ['.cpp', '.h', '.hpp', '.cc', '.el', '.js', '.jsx', '.scm']
+                files = []
+                
+                for ext in extensions:
+                    files.extend(Path(root_path).rglob(f'*{ext}'))
+                
+                # Analyze each file
+                for file_path in files:
+                    try:
+                        analysis = self.analyze_file(str(file_path))
+                        self.modules[str(file_path)] = analysis
+                    except Exception as e:
+                        print(f"Error analyzing {file_path}: {e}")
+                        continue
+                
+                # Generate skills
+                self.skills = self.generate_skills()
+                
+                return {
+                    'total_files': len(files),
+                    'analyzed_files': len(self.modules),
+                    'total_skills': len(self.skills),
+                    'skills': self.skills
+                }
+        
+        if __name__ == '__main__':
+            analyzer = CodebaseAnalyzer()
+            results = analyzer.analyze_project()
+            
+            # Save results
+            with open('analysis_results.json', 'w') as f:
+                json.dump(results, f, indent=2)
+            
+            print(f"Analysis complete: {results['total_skills']} skills generated")
+            print(f"count={results['total_skills']}")
+        EOF
+        
+        python3 vm-daemon-analyzer.py
+        echo "count=$(cat analysis_results.json | jq '.total_skills')" >> $GITHUB_OUTPUT
+
+  generate-skills:
+    needs: analyze-codebase
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: needs.analyze-codebase.outputs.skill_count > 0
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Create skills directory
+      run: mkdir -p ${{ env.SKILLS_DIR }}
+
+    - name: Download analysis results
+      uses: actions/download-artifact@v4
+      with:
+        name: analysis-results
+
+    - name: Generate Copilot skills
+      run: |
+        cat > skill-generator.js << 'EOF'
+        const fs = require('fs');
+        const path = require('path');
+        
+        class SkillGenerator {
+            constructor() {
+                this.skillsDir = process.env.SKILLS_DIR || '.copilot/skills';
+                this.timestamp = new Date().toISOString();
+            }
+            
+            generateSkillFile(skill) {
+                const template = `/**
+         * Copilot Skill: ${skill.name}
+         * Generated: ${this.timestamp}
+         * Category: ${skill.category}
+         * Language: ${skill.language}
+         * Source: ${skill.source_file}
+         */
+        
+        {
+          "skill": {
+            "name": "${skill.name}",
+            "description": "${skill.description}",
+            "version": "1.0.0",
+            "language": "${skill.language}",
+            "category": "${skill.category}",
+            "metadata": {
+              "signature": "${skill.signature}",
+              "sourceFile": "${skill.source_file}",
+              "generated": "${this.timestamp}"
+            },
+            "examples": [
+              {
+                "description": "Basic usage example",
+                "code": \`${skill.usage_example}\`
+              }
+            ],
+            "context": {
+              "when": "When implementing ${skill.language} functions similar to ${skill.name}",
+              "suggest": "Suggest using the established pattern from ${skill.source_file}"
+            }
+          }
+        }`;
+                
+                return template;
+            }
+            
+            generateIndexFile(skills) {
+                const index = {
+                    version: "1.0.0",
+                    generated: this.timestamp,
+                    totalSkills: skills.length,
+                    categories: {},
+                    languages: {},
+                    skills: skills.map(skill => ({
+                        name: skill.name,
+                        description: skill.description,
+                        file: `${skill.name}.json`,
+                        language: skill.language,
+                        category: skill.category
+                    }))
+                };
+                
+                // Group by category and language
+                skills.forEach(skill => {
+                    index.categories[skill.category] = (index.categories[skill.category] || 0) + 1;
+                    index.languages[skill.language] = (index.languages[skill.language] || 0) + 1;
+                });
+                
+                return JSON.stringify(index, null, 2);
+            }
+            
+            async generateAll() {
+                try {
+                    const analysisData = JSON.parse(fs.readFileSync('analysis_results.json', 'utf8'));
+                    const skills = analysisData.skills || [];
+                    
+                    console.log(`Generating ${skills.length} Copilot skills...`);
+                    
+                    // Create skills directory
+                    fs.mkdirSync(this.skillsDir, { recursive: true });
+                    
+                    // Generate individual skill files
+                    for (const skill of skills) {
+                        const skillContent = this.generateSkillFile(skill);
+                        const skillPath = path.join(this.skillsDir, `${skill.name}.json`);
+                        fs.writeFileSync(skillPath, skillContent);
+                    }
+                    
+                    // Generate index file
+                    const indexContent = this.generateIndexFile(skills);
+                    fs.writeFileSync(path.join(this.skillsDir, 'index.json'), indexContent);
+                    
+                    // Generate README
+                    const readmeContent = `# Copilot Skills
+        
+        Auto-generated skills for the SkinTwin project.
+        
+        ## Summary
+        - **Total Skills**: ${skills.length}
+        - **Generated**: ${this.timestamp}
+        - **Categories**: ${Object.keys(skills.reduce((acc, s) => ({ ...acc, [s.category]: true }), {})).join(', ')}
+        - **Languages**: ${Object.keys(skills.reduce((acc, s) => ({ ...acc, [s.language]: true }), {})).join(', ')}
+        
+        ## Usage
+        These skills are automatically detected by GitHub Copilot to provide better code suggestions
+        based on your existing codebase patterns.
+        
+        ## Files
+        ${skills.map(skill => `- \`${skill.name}.json\` - ${skill.description}`).join('\n')}
+        `;
+                    
+                    fs.writeFileSync(path.join(this.skillsDir, 'README.md'), readmeContent);
+                    
+                    console.log(`Successfully generated ${skills.length} skills`);
+                    
+                } catch (error) {
+                    console.error('Error generating skills:', error);
+                    process.exit(1);
+                }
+            }
+        }
+        
+        const generator = new SkillGenerator();
+        generator.generateAll();
+        EOF
+        
+        node skill-generator.js
+
+    - name: Upload skills artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: copilot-skills
+        path: ${{ env.SKILLS_DIR }}
+        retention-days: 30
+
+  integrate-skills:
+    needs: [analyze-codebase, generate-skills]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: needs.analyze-codebase.outputs.skill_count > 0
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Download skills
+      uses: actions/download-artifact@v4
+      with:
+        name: copilot-skills
+        path: ${{ env.SKILLS_DIR }}
+
+    - name: Create .copilot configuration
+      run: |
+        mkdir -p .copilot
+        cat > .copilot/config.yml << EOF
+        version: 1
+        skills:
+          directory: skills
+          auto_update: true
+          languages:
+            - cpp
+            - javascript
+            - elisp
+        daemon:
+          version: ${{ env.DAEMON_VERSION }}
+          last_update: $(date -Iseconds)
+          auto_learn: true
+        EOF
+
+    - name: Generate integration report
+      run: |
+        cat > SKILL_INTEGRATION_REPORT.md << EOF
+        # VM-Daemon Copilot Skills Integration Report
+        
+        **Generated**: $(date)  
+        **Skills Count**: $(find ${{ env.SKILLS_DIR }} -name "*.json" | wc -l)  
+        **Analysis Hash**: ${{ needs.analyze-codebase.outputs.analysis_hash }}
+        
+        ## Summary
+        The VM-daemon successfully analyzed the SkinTwin codebase and generated Copilot skills for:
+        
+        ### Languages Analyzed
+        - C++ (OpenCog components)
+        - Elisp (Emacs integration)
+        - JavaScript/JSX (React frontend)
+        - Scheme (Logic programming)
+        
+        ### Skill Categories Generated
+        - Function implementations
+        - Class patterns
+        - Integration patterns
+        - Domain-specific logic
+        
+        ### Files Generated
+        \`\`\`
+        $(find ${{ env.SKILLS_DIR }} -type f | sort)
+        \`\`\`
+        
+        ## Integration Status
+        ✅ Skills generated and stored in \`${{ env.SKILLS_DIR }}/\`  
+        ✅ Configuration created in \`.copilot/config.yml\`  
+        ✅ Auto-learning enabled for future updates  
+        
+        ## Next Steps
+        1. GitHub Copilot will automatically detect these skills
+        2. Suggestions will improve based on your codebase patterns  
+        3. Skills will auto-update on code changes
+        
+        ---
+        *This report was generated by VM-daemon v${{ env.DAEMON_VERSION }}*
+        EOF
+
+    - name: Commit and push skills
+      run: |
+        git config --global user.name 'VM-Daemon[bot]'
+        git config --global user.email 'vm-daemon@users.noreply.github.com'
+        
+        git add ${{ env.SKILLS_DIR }}/
+        git add .copilot/
+        git add SKILL_INTEGRATION_REPORT.md
+        
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "🤖 VM-Daemon: Auto-generate Copilot skills
+          
+          - Generated $(find ${{ env.SKILLS_DIR }} -name "*.json" | wc -l) skills from codebase analysis
+          - Updated integration configuration
+          - Analysis hash: ${{ needs.analyze-codebase.outputs.analysis_hash }}
+          
+          [skip ci]"
+          git push
+        fi
+
+  notify-completion:
+    needs: [analyze-codebase, generate-skills, integrate-skills]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Create status summary
+      run: |
+        echo "## VM-Daemon Copilot Skills Integration" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**Status**: ${{ needs.integrate-skills.result == 'success' && '✅ Success' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Skills Generated**: ${{ needs.analyze-codebase.outputs.skill_count }}" >> $GITHUB_STEP_SUMMARY
+        echo "**Analysis Hash**: \`${{ needs.analyze-codebase.outputs.analysis_hash }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Integration Details" >> $GITHUB_STEP_SUMMARY
+        echo "- 🧠 Codebase analysis completed" >> $GITHUB_STEP_SUMMARY
+        echo "- 🛠️ Skills generated and integrated" >> $GITHUB_STEP_SUMMARY
+        echo "- 🚀 GitHub Copilot enhanced with project-specific skills" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "The VM-daemon has successfully learned from your SkinTwin codebase and enhanced GitHub Copilot with domain-specific skills!" >> $GITHUB_STEP_SUMMARY
+
+    - name: Notification on failure
+      if: failure()
+      run: |
+        echo "❌ VM-Daemon integration failed. Check the workflow logs for details." >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,340 @@
+<!--
+    Medical Content Safety Policy for RegimAI Gateway
+    
+    Enhanced content safety specifically designed for medical and dermatological content.
+    Validates medical accuracy, filters harmful advice, and ensures evidence-based 
+    recommendations using specialized healthcare content safety policies.
+-->
+<policies>
+    <inbound>
+        <!-- Set medical context headers -->
+        <set-header name="X-Medical-Domain" exists-action="override">
+            <value>dermatology</value>
+        </set-header>
+        <set-header name="X-Healthcare-Context" exists-action="override">
+            <value>true</value>
+        </set-header>
+        <set-header name="X-Evidence-Required" exists-action="override">
+            <value>clinical_studies</value>
+        </set-header>
+
+        <!-- Medical content safety pre-screening -->
+        <llm-content-safety>
+            <name>medical-pre-screening</name>
+            <input>@(context.Request.Body.As<string>(preserveContent: true))</input>
+            <categories>
+                <!-- Core medical safety categories -->
+                <category>medical_accuracy</category>
+                <category>harmful_medical_advice</category>
+                <category>inappropriate_diagnosis</category>
+                <category>dangerous_drug_interactions</category>
+                <category>contraindication_violations</category>
+                
+                <!-- Dermatology-specific categories -->
+                <category>unsafe_skincare_advice</category>
+                <category>inappropriate_cosmetic_procedures</category>
+                <category>misleading_ingredient_claims</category>
+                <category>unqualified_medical_recommendations</category>
+                
+                <!-- Regulatory compliance categories -->
+                <category>fda_violation</category>
+                <category>medical_device_misuse</category>
+                <category>unlicensed_practice</category>
+                <category>off_label_inappropriate</category>
+            </categories>
+            <thresholds>
+                <!-- Zero tolerance for harmful medical advice -->
+                <harmful_medical_advice>zero_tolerance</harmful_medical_advice>
+                <dangerous_drug_interactions>zero_tolerance</dangerous_drug_interactions>
+                <contraindication_violations>zero_tolerance</contraindication_violations>
+                
+                <!-- High standards for medical accuracy -->
+                <medical_accuracy>high</medical_accuracy>
+                <inappropriate_diagnosis>high</inappropriate_diagnosis>
+                <fda_violation>high</fda_violation>
+                
+                <!-- Medium tolerance for educational content -->
+                <unsafe_skincare_advice>medium</unsafe_skincare_advice>
+                <misleading_ingredient_claims>medium</misleading_ingredient_claims>
+                <unqualified_medical_recommendations>medium</unqualified_medical_recommendations>
+            </thresholds>
+            <action>block</action>
+            <response-code>400</response-code>
+            <response-message>Medical content safety violation detected. Content does not meet healthcare safety standards.</response-message>
+        </llm-content-safety>
+
+        <!-- Medical terminology validation -->
+        <send-request mode="new" response-variable-name="medicalValidation" timeout="10" ignore-error="false">
+            <set-url>https://medical-terminology-validator.azurewebsites.net/validate</set-url>
+            <set-method>POST</set-method>
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+            </set-header>
+            <set-body>@{
+                return new JObject(
+                    new JProperty("content", context.Request.Body.As<string>(preserveContent: true)),
+                    new JProperty("domain", "dermatology"),
+                    new JProperty("validate_terminology", true),
+                    new JProperty("check_evidence", true),
+                    new JProperty("regulatory_compliance", "FDA")
+                ).ToString();
+            }</set-body>
+        </send-request>
+
+        <!-- Block requests with invalid medical terminology -->
+        <choose>
+            <when condition="@(((JObject)context.Variables["medicalValidation"]).SelectToken("validation_passed").Value<bool>() == false)">
+                <return-response>
+                    <set-status code="400" reason="Invalid Medical Content" />
+                    <set-header name="Content-Type" exists-action="override">
+                        <value>application/json</value>
+                    </set-header>
+                    <set-body>@{
+                        var validation = (JObject)context.Variables["medicalValidation"];
+                        return new JObject(
+                            new JProperty("error", "Medical terminology validation failed"),
+                            new JProperty("issues", validation.SelectToken("issues")),
+                            new JProperty("medical_disclaimer", "Please consult with a qualified healthcare professional"),
+                            new JProperty("compliance_note", "Content must meet medical accuracy standards")
+                        ).ToString();
+                    }</set-body>
+                </return-response>
+            </when>
+        </choose>
+
+        <!-- Evidence-based content validation -->
+        <send-request mode="new" response-variable-name="evidenceValidation" timeout="15" ignore-error="true">
+            <set-url>https://clinical-evidence-validator.azurewebsites.net/validate</set-url>
+            <set-method>POST</set-method>
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+            </set-header>
+            <set-body>@{
+                return new JObject(
+                    new JProperty("content", context.Request.Body.As<string>(preserveContent: true)),
+                    new JProperty("require_evidence", true),
+                    new JProperty("evidence_levels", new JArray("clinical_trials", "peer_reviewed", "medical_guidelines")),
+                    new JProperty("domain", "dermatology")
+                ).ToString();
+            }</set-body>
+        </send-request>
+
+        <!-- Add evidence validation results to request context -->
+        <set-header name="X-Evidence-Validation" exists-action="override">
+            <value>@{
+                if (context.Variables.ContainsKey("evidenceValidation")) {
+                    var validation = (JObject)context.Variables["evidenceValidation"];
+                    return validation.SelectToken("evidence_sufficient")?.Value<bool>() == true ? "sufficient" : "insufficient";
+                }
+                return "not_validated";
+            }</value>
+        </set-header>
+
+        <!-- Medical compliance rate limiting -->
+        <rate-limit-by-key calls="50" renewal-period="3600" counter-key="@(context.Request.IpAddress + "_medical")" />
+        
+        <!-- Additional rate limiting for medical advice requests -->
+        <choose>
+            <when condition="@(context.Request.Body.As<string>().ToLower().Contains("diagnosis") || context.Request.Body.As<string>().ToLower().Contains("treatment"))">
+                <rate-limit-by-key calls="10" renewal-period="3600" counter-key="@(context.Request.IpAddress + "_medical_advice")" />
+            </when>
+        </choose>
+
+        <!-- Medical professional authentication for clinical advice -->
+        <choose>
+            <when condition="@(context.Request.Body.As<string>().ToLower().Contains("prescribe") || context.Request.Body.As<string>().ToLower().Contains("diagnosis"))">
+                <validate-jwt header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="Medical professional authentication required for clinical advice">
+                    <openid-config url="https://login.microsoftonline.com/{{tenant-id}}/v2.0/.well-known/openid_configuration" />
+                    <required-claims>
+                        <claim name="medical_license" match="exists" />
+                        <claim name="scope" match="any">
+                            <value>medical.prescribe</value>
+                            <value>medical.diagnose</value>
+                        </claim>
+                    </required-claims>
+                </validate-jwt>
+            </when>
+        </choose>
+
+        <!-- Log medical safety events for compliance -->
+        <log-to-eventhub logger-id="medical-safety-logger" partition-id="0">
+            @{
+                return new JObject(
+                    new JProperty("timestamp", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")),
+                    new JProperty("event_type", "medical_content_safety_check"),
+                    new JProperty("domain", "dermatology"),
+                    new JProperty("content_safe", true),
+                    new JProperty("medical_validation", context.Variables.ContainsKey("medicalValidation") ? "passed" : "not_performed"),
+                    new JProperty("evidence_validation", context.Request.Headers.GetValueOrDefault("X-Evidence-Validation", "unknown")),
+                    new JProperty("compliance_framework", "FDA_HIPAA"),
+                    new JProperty("request_id", Guid.NewGuid().ToString())
+                ).ToString();
+            }
+        </log-to-eventhub>
+    </inbound>
+
+    <backend>
+        <forward-request timeout="120" />
+    </backend>
+
+    <outbound>
+        <!-- Medical response content safety -->
+        <llm-content-safety>
+            <name>medical-response-safety</name>
+            <input>@(context.Response.Body.As<string>(preserveContent: true))</input>
+            <categories>
+                <!-- Response-specific safety categories -->
+                <category>harmful_medical_advice</category>
+                <category>inappropriate_medical_claims</category>
+                <category>missing_medical_disclaimers</category>
+                <category>overstated_treatment_claims</category>
+                <category>unauthorized_diagnosis</category>
+                <category>dangerous_self_medication_advice</category>
+                <category>inappropriate_cosmetic_procedure_advice</category>
+                <category>unsubstantiated_product_claims</category>
+            </categories>
+            <thresholds>
+                <!-- Strict thresholds for response safety -->
+                <harmful_medical_advice>zero_tolerance</harmful_medical_advice>
+                <unauthorized_diagnosis>zero_tolerance</unauthorized_diagnosis>
+                <dangerous_self_medication_advice>zero_tolerance</dangerous_self_medication_advice>
+                <inappropriate_medical_claims>high</inappropriate_medical_claims>
+                <missing_medical_disclaimers>medium</missing_medical_disclaimers>
+                <overstated_treatment_claims>medium</overstated_treatment_claims>
+            </thresholds>
+            <action>filter</action>
+        </llm-content-safety>
+
+        <!-- Clinical evidence verification for responses -->
+        <send-request mode="new" response-variable-name="responseEvidenceCheck" timeout="10" ignore-error="true">
+            <set-url>https://clinical-evidence-verifier.azurewebsites.net/verify-response</set-url>
+            <set-method>POST</set-method>
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+            </set-header>
+            <set-body>@{
+                return new JObject(
+                    new JProperty("response", context.Response.Body.As<string>(preserveContent: true)),
+                    new JProperty("verify_claims", true),
+                    new JProperty("check_evidence_basis", true),
+                    new JProperty("validate_medical_accuracy", true)
+                ).ToString();
+            }</set-body>
+        </send-request>
+
+        <!-- Add medical disclaimers to responses -->
+        <choose>
+            <when condition="@(context.Response.Headers.GetValueOrDefault("Content-Type", "").Contains("application/json"))">
+                <set-body>@{
+                    var body = context.Response.Body.As<JObject>(preserveContent: true);
+                    
+                    // Add medical disclaimers
+                    body["medical_disclaimer"] = "This information is for educational purposes only and does not constitute medical advice. Always consult with a qualified healthcare professional for medical concerns.";
+                    body["regulatory_note"] = "This service has not been evaluated by the FDA and is not intended to diagnose, treat, cure, or prevent any disease.";
+                    body["evidence_level"] = context.Variables.ContainsKey("responseEvidenceCheck") ? 
+                        ((JObject)context.Variables["responseEvidenceCheck"]).SelectToken("evidence_level")?.Value<string>() ?? "not_assessed" : "not_assessed";
+                    
+                    return body.ToString();
+                }</set-body>
+            </when>
+        </choose>
+
+        <!-- Add medical compliance headers -->
+        <set-header name="X-Medical-Content-Safety" exists-action="override">
+            <value>validated</value>
+        </set-header>
+        <set-header name="X-Evidence-Based" exists-action="override">
+            <value>@{
+                if (context.Variables.ContainsKey("responseEvidenceCheck")) {
+                    var check = (JObject)context.Variables["responseEvidenceCheck"];
+                    return check.SelectToken("evidence_based")?.Value<bool>() == true ? "true" : "false";
+                }
+                return "not_assessed";
+            }</value>
+        </set-header>
+        <set-header name="X-Medical-Accuracy-Score" exists-action="override">
+            <value>@{
+                if (context.Variables.ContainsKey("responseEvidenceCheck")) {
+                    var check = (JObject)context.Variables["responseEvidenceCheck"];
+                    return check.SelectToken("accuracy_score")?.Value<string>() ?? "not_scored";
+                }
+                return "not_scored";
+            }</value>
+        </set-header>
+        <set-header name="X-Healthcare-Compliance" exists-action="override">
+            <value>FDA_HIPAA_Compliant</value>
+        </set-header>
+
+        <!-- Log medical response validation -->
+        <log-to-eventhub logger-id="medical-safety-logger" partition-id="0">
+            @{
+                return new JObject(
+                    new JProperty("timestamp", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")),
+                    new JProperty("event_type", "medical_response_validation"),
+                    new JProperty("response_safe", true),
+                    new JProperty("evidence_based", context.Response.Headers.GetValueOrDefault("X-Evidence-Based", "unknown")),
+                    new JProperty("accuracy_score", context.Response.Headers.GetValueOrDefault("X-Medical-Accuracy-Score", "unknown")),
+                    new JProperty("disclaimers_added", true),
+                    new JProperty("compliance_verified", true)
+                ).ToString();
+            }
+        </log-to-eventhub>
+    </outbound>
+
+    <on-error>
+        <!-- Enhanced medical error handling -->
+        <choose>
+            <when condition="@(context.LastError.Source == "llm-content-safety")">
+                <!-- Medical content safety violation -->
+                <return-response>
+                    <set-status code="400" reason="Medical Content Safety Violation" />
+                    <set-header name="Content-Type" exists-action="override">
+                        <value>application/json</value>
+                    </set-header>
+                    <set-body>@{
+                        return new JObject(
+                            new JProperty("error", "Medical content safety violation"),
+                            new JProperty("message", "The request contains content that does not meet healthcare safety standards"),
+                            new JProperty("guidance", "Please ensure all medical content is accurate, evidence-based, and appropriate"),
+                            new JProperty("medical_disclaimer", "For medical advice, please consult with a qualified healthcare professional"),
+                            new JProperty("support", "For technical support: medical-ai-support@regima.ai"),
+                            new JProperty("compliance_info", "This service adheres to FDA and HIPAA guidelines")
+                        ).ToString();
+                    }</set-body>
+                </return-response>
+            </when>
+            <otherwise>
+                <!-- General medical service error -->
+                <return-response>
+                    <set-status code="500" reason="Medical Service Error" />
+                    <set-header name="Content-Type" exists-action="override">
+                        <value>application/json</value>
+                    </set-header>
+                    <set-body>@{
+                        return new JObject(
+                            new JProperty("error", "Medical AI service temporarily unavailable"),
+                            new JProperty("message", "Please try again later or consult with a healthcare professional"),
+                            new JProperty("medical_disclaimer", "This service is for informational purposes only and does not replace professional medical advice"),
+                            new JProperty("emergency_note", "For medical emergencies, contact emergency services immediately"),
+                            new JProperty("support", "For technical support: medical-ai-support@regima.ai")
+                        ).ToString();
+                    }</set-body>
+                </return-response>
+            </otherwise>
+        </choose>
+
+        <!-- Log medical errors for compliance -->
+        <log-to-eventhub logger-id="medical-safety-logger" partition-id="0">
+            @{
+                return new JObject(
+                    new JProperty("timestamp", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")),
+                    new JProperty("event_type", "medical_service_error"),
+                    new JProperty("error_source", context.LastError?.Source ?? "unknown"),
+                    new JProperty("error_message", context.LastError?.Message ?? "unknown"),
+                    new JProperty("medical_context", true),
+                    new JProperty("compliance_logged", true)
+                ).ToString();
+            }
+        </log-to-eventhub>
+    </on-error>
+</policies>

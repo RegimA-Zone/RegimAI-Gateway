@@ -4,24 +4,36 @@ const fs = require('fs-extra');
 const path = require('path');
 const { marked } = require('marked');
 
-class SiteBuilder {
+/**
+ * RegimAI Gateway Site Builder
+ * 
+ * Builds the RegimAI Gateway documentation site and API portal
+ * from the regima.site content, adapting it for AI Gateway functionality.
+ */
+class RegimAIGatewaySiteBuilder {
     constructor() {
         this.publicDir = path.join(__dirname, '..', 'public');
         this.contentDir = path.join(__dirname, '..', 'content');
         this.templatesDir = path.join(__dirname, '..', 'templates');
         this.assetsDir = path.join(__dirname, '..', 'assets');
+        this.configDir = path.join(__dirname, '..', 'config');
         
         this.siteConfig = {
-            baseUrl: 'https://regima.site',
-            title: 'RégimA Zone',
-            description: 'Advanced skincare solutions powered by cognitive architecture'
+            baseUrl: 'https://gateway.regima.ai',
+            title: 'RegimAI Gateway',
+            description: 'AI Gateway for dermatology and skincare cognitive services - powered by SkinTwin architecture'
         };
+        
+        this.gatewayConfig = null;
     }
 
     async build() {
-        console.log('🚀 Building RegimA site with cognitive architecture...');
+        console.log('🚀 Building RegimAI Gateway site with AI services documentation...');
         
         try {
+            // Load gateway configuration
+            await this.loadGatewayConfig();
+            
             // Clean and create public directory
             await fs.remove(this.publicDir);
             await fs.ensureDir(this.publicDir);
@@ -32,6 +44,11 @@ class SiteBuilder {
             // Build pages
             await this.buildPages();
             
+            // Generate gateway-specific content
+            await this.generateGatewayDocumentation();
+            await this.generateAPIDocumentation();
+            await this.generateServiceCatalog();
+            
             // Generate sitemap
             await this.generateSitemap();
             
@@ -41,11 +58,17 @@ class SiteBuilder {
             // Generate cognitive knowledge index
             await this.generateCognitiveIndex();
             
-            console.log('✅ Build completed successfully!');
+            console.log('✅ RegimAI Gateway build completed successfully!');
         } catch (error) {
             console.error('❌ Build failed:', error);
             process.exit(1);
         }
+    }
+
+    async loadGatewayConfig() {
+        console.log('📋 Loading gateway configuration...');
+        const configPath = path.join(this.configDir, 'gateway.json');
+        this.gatewayConfig = await fs.readJson(configPath);
     }
 
     async copyAssets() {
@@ -445,12 +468,330 @@ Disallow: /*.temp$`;
         
         await fs.writeFile(path.join(cognitiveDir, 'api.html'), apiDoc);
     }
+
+    async generateGatewayDocumentation() {
+        console.log('📖 Generating gateway documentation...');
+        
+        const gatewayDir = path.join(this.publicDir, 'gateway');
+        await fs.ensureDir(gatewayDir);
+        
+        const gatewayDoc = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RegimAI Gateway - AI Services for Dermatology</title>
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+<body>
+    <div class="content-section">
+        <h1>🚀 ${this.gatewayConfig.gateway.name}</h1>
+        <p>${this.gatewayConfig.gateway.description}</p>
+        
+        <h2>🏗️ Architecture Overview</h2>
+        <p>The RegimAI Gateway provides a unified interface for AI services, agents, and tools specifically designed for dermatology and skincare applications.</p>
+        
+        <div class="architecture-diagram">
+            <h3>Gateway Components</h3>
+            <ul>
+                <li><strong>AI Models:</strong> OpenAI, Azure OpenAI, Cognitive Services</li>
+                <li><strong>AI Agents:</strong> Skincare Consultant, Dermatology Assistant, Product Advisor</li>
+                <li><strong>Data Services:</strong> Vector Store, Knowledge Graph</li>
+                <li><strong>Tools:</strong> Image Analysis, Routine Generator</li>
+                <li><strong>Cognitive Integration:</strong> SkinTwin Architecture (AtomSpace, PLN, MOSES, ESN)</li>
+            </ul>
+        </div>
+        
+        <h2>🛡️ Policies & Governance</h2>
+        <p>All services are protected by comprehensive policies ensuring safety, privacy, and domain expertise:</p>
+        <ul>
+            <li><strong>Content Safety:</strong> Medical accuracy validation and harmful content filtering</li>
+            <li><strong>Privacy Protection:</strong> HIPAA compliance and data anonymization</li>
+            <li><strong>Domain Validation:</strong> Dermatology-specific terminology and evidence-based recommendations</li>
+            <li><strong>Authentication:</strong> API key management and user permissions</li>
+        </ul>
+        
+        <h2>🔗 Quick Start</h2>
+        <p>Get started with the RegimAI Gateway:</p>
+        <ol>
+            <li>Obtain your API key from the RegimA platform</li>
+            <li>Include the API key in your requests: <code>X-API-Key: regima_your_api_key</code></li>
+            <li>Start making requests to the gateway endpoints</li>
+        </ol>
+        
+        <h2>📚 Resources</h2>
+        <ul>
+            <li><a href="/gateway/api-docs">Complete API Documentation</a></li>
+            <li><a href="/gateway/services">Service Catalog</a></li>
+            <li><a href="/cognitive/status">Cognitive Architecture Status</a></li>
+            <li><a href="/metrics">Gateway Metrics</a></li>
+        </ul>
+    </div>
+</body>
+</html>`;
+        
+        await fs.writeFile(path.join(gatewayDir, 'index.html'), gatewayDoc);
+    }
+
+    async generateAPIDocumentation() {
+        console.log('📋 Generating API documentation...');
+        
+        const gatewayDir = path.join(this.publicDir, 'gateway');
+        await fs.ensureDir(gatewayDir);
+        
+        const apiDoc = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RegimAI Gateway API Documentation</title>
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+<body>
+    <div class="content-section">
+        <h1>📖 RegimAI Gateway API</h1>
+        <p>Complete API reference for the RegimAI Gateway services.</p>
+        
+        <h2>🔐 Authentication</h2>
+        <p>All API requests require authentication using an API key:</p>
+        <pre><code>X-API-Key: regima_your_api_key_here</code></pre>
+        
+        <h2>🤖 AI Models</h2>
+        
+        <h3>OpenAI Chat Completions</h3>
+        <pre><code>POST /v1/openai/chat/completions
+Content-Type: application/json
+X-API-Key: regima_your_api_key
+
+{
+  "model": "gpt-3.5-turbo",
+  "messages": [
+    {"role": "user", "content": "What's the best skincare routine for oily skin?"}
+  ],
+  "max_tokens": 150
+}</code></pre>
+        
+        <h3>Azure OpenAI Chat Completions</h3>
+        <pre><code>POST /v1/azure-openai/chat/completions
+Content-Type: application/json
+X-API-Key: regima_your_api_key
+
+{
+  "model": "gpt-4",
+  "messages": [
+    {"role": "user", "content": "Analyze this skincare routine for effectiveness"}
+  ]
+}</code></pre>
+        
+        <h2>👥 AI Agents</h2>
+        
+        <h3>Skincare Consultant</h3>
+        <pre><code>POST /agents/skincare-consultant
+Content-Type: application/json
+X-API-Key: regima_your_api_key
+
+{
+  "skinType": "combination",
+  "concerns": ["acne", "dark-spots"],
+  "routine": "basic",
+  "goals": ["clear-skin", "even-tone"]
+}</code></pre>
+        
+        <h3>Product Advisor</h3>
+        <pre><code>POST /agents/product-advisor
+Content-Type: application/json
+X-API-Key: regima_your_api_key
+
+{
+  "skinType": "sensitive",
+  "budget": "moderate",
+  "preferences": ["fragrance-free", "cruelty-free"]
+}</code></pre>
+        
+        <h2>🔧 Tools</h2>
+        
+        <h3>Image Analysis</h3>
+        <pre><code>POST /tools/image-analysis
+Content-Type: application/json
+X-API-Key: regima_your_api_key
+
+{
+  "imageData": "base64_encoded_image_data",
+  "analysisType": "skin-assessment"
+}</code></pre>
+        
+        <h3>Routine Generator</h3>
+        <pre><code>POST /tools/routine-generator
+Content-Type: application/json
+X-API-Key: regima_your_api_key
+
+{
+  "skinType": "dry",
+  "concerns": ["aging", "hydration"],
+  "timeAvailable": "moderate",
+  "products": ["cleanser", "serum", "moisturizer"]
+}</code></pre>
+        
+        <h2>💾 Data Services</h2>
+        
+        <h3>Vector Search</h3>
+        <pre><code>GET /data/vectors/search?query=retinol%20benefits&limit=10
+X-API-Key: regima_your_api_key</code></pre>
+        
+        <h3>Knowledge Query</h3>
+        <pre><code>POST /data/knowledge/query
+Content-Type: application/json
+X-API-Key: regima_your_api_key
+
+{
+  "query": "ingredients for anti-aging",
+  "context": "evidence-based",
+  "limit": 5
+}</code></pre>
+        
+        <h2>🧠 Cognitive Services</h2>
+        
+        <h3>AtomSpace Query</h3>
+        <pre><code>GET /cognitive/atomspace?concept=hyaluronic-acid
+X-API-Key: regima_your_api_key</code></pre>
+        
+        <h3>PLN Reasoning</h3>
+        <pre><code>POST /cognitive/reasoning
+Content-Type: application/json
+X-API-Key: regima_your_api_key
+
+{
+  "premises": ["dry skin", "winter climate"],
+  "goal": "optimal moisturizer"
+}</code></pre>
+        
+        <h2>📊 Response Format</h2>
+        <p>All API responses follow a consistent format:</p>
+        <pre><code>{
+  "success": true,
+  "data": { /* response data */ },
+  "metadata": {
+    "timestamp": "2024-01-01T00:00:00Z",
+    "requestId": "req_123456",
+    "processingTime": "150ms"
+  }
+}</code></pre>
+        
+        <h2>⚠️ Error Handling</h2>
+        <p>Error responses include detailed information:</p>
+        <pre><code>{
+  "success": false,
+  "error": {
+    "code": "INVALID_API_KEY",
+    "message": "The provided API key is not valid",
+    "details": "Please check your API key and try again"
+  }
+}</code></pre>
+    </div>
+</body>
+</html>`;
+        
+        await fs.writeFile(path.join(gatewayDir, 'api-docs.html'), apiDoc);
+    }
+
+    async generateServiceCatalog() {
+        console.log('🗂️ Generating service catalog...');
+        
+        const gatewayDir = path.join(this.publicDir, 'gateway');
+        await fs.ensureDir(gatewayDir);
+        
+        const serviceDoc = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RegimAI Gateway Service Catalog</title>
+    <link rel="stylesheet" href="/assets/css/main.css">
+</head>
+<body>
+    <div class="content-section">
+        <h1>🗂️ Service Catalog</h1>
+        <p>Comprehensive catalog of available services in the RegimAI Gateway.</p>
+        
+        <h2>🤖 AI Models & Services</h2>
+        ${this.generateServiceSection('ai-models')}
+        
+        <h2>👥 AI Agents</h2>
+        ${this.generateServiceSection('ai-agents')}
+        
+        <h2>💾 Data Services</h2>
+        ${this.generateServiceSection('data-services')}
+        
+        <h2>🔧 Tools & Functions</h2>
+        ${this.generateServiceSection('tools')}
+        
+        <h2>📊 Service Statistics</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Services</h3>
+                <p class="stat-number">${this.countTotalServices()}</p>
+            </div>
+            <div class="stat-card">
+                <h3>AI Models</h3>
+                <p class="stat-number">${Object.keys(this.gatewayConfig.services['ai-models']).length}</p>
+            </div>
+            <div class="stat-card">
+                <h3>AI Agents</h3>
+                <p class="stat-number">${Object.keys(this.gatewayConfig.services['ai-agents']).length}</p>
+            </div>
+            <div class="stat-card">
+                <h3>Active Policies</h3>
+                <p class="stat-number">${Object.keys(this.gatewayConfig.policies).length}</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>`;
+        
+        await fs.writeFile(path.join(gatewayDir, 'services.html'), serviceDoc);
+    }
+
+    generateServiceSection(category) {
+        const services = this.gatewayConfig.services[category];
+        let html = '<div class="service-category">';
+        
+        for (const [serviceName, serviceConfig] of Object.entries(services)) {
+            html += `
+                <div class="service-card">
+                    <h3>${serviceName}</h3>
+                    <p><strong>Endpoint:</strong> <code>${serviceConfig.endpoint}</code></p>
+                    <p>${serviceConfig.description}</p>
+                    ${serviceConfig.capabilities ? `
+                        <p><strong>Capabilities:</strong></p>
+                        <ul>
+                            ${serviceConfig.capabilities.map(cap => `<li>${cap}</li>`).join('')}
+                        </ul>
+                    ` : ''}
+                    ${serviceConfig.models ? `
+                        <p><strong>Models:</strong> ${serviceConfig.models.join(', ')}</p>
+                    ` : ''}
+                    ${serviceConfig.services ? `
+                        <p><strong>Services:</strong> ${serviceConfig.services.join(', ')}</p>
+                    ` : ''}
+                    <p><strong>Policies:</strong> ${serviceConfig.policies.join(', ')}</p>
+                </div>
+            `;
+        }
+        
+        html += '</div>';
+        return html;
+    }
+
+    countTotalServices() {
+        return Object.values(this.gatewayConfig.services)
+            .reduce((total, category) => total + Object.keys(category).length, 0);
+    }
 }
 
 // Run the build
 if (require.main === module) {
-    const builder = new SiteBuilder();
+    const builder = new RegimAIGatewaySiteBuilder();
     builder.build();
 }
 
-module.exports = SiteBuilder;
+module.exports = RegimAIGatewaySiteBuilder;

@@ -3,34 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{title}} - RégimA</title>
+    <title>{{title}} - RegimAI Gateway</title>
     <meta name="description" content="{{description}}">
     <link rel="stylesheet" href="/assets/css/main.css">
-    <link rel="canonical" href="https://regima.site{{path}}">
+    <link rel="canonical" href="https://gateway.regima.ai{{path}}">
     
-    <!-- Cognitive Architecture Meta -->
+    <!-- AI Gateway Meta -->
+    <meta name="gateway-type" content="ai-gateway">
     <meta name="cognitive-layer" content="skintwin">
     <meta name="knowledge-domain" content="dermatology">
     <meta name="architecture-components" content="atomspace,pln,moses,esn">
+    <meta name="ai-services" content="openai,azure-openai,cognitive-services">
+    <meta name="gateway-version" content="1.0.0">
     
     <!-- OpenGraph -->
-    <meta property="og:title" content="{{title}} - RégimA">
+    <meta property="og:title" content="{{title}} - RegimAI Gateway">
     <meta property="og:description" content="{{description}}">
-    <meta property="og:url" content="https://regima.site{{path}}">
+    <meta property="og:url" content="https://gateway.regima.ai{{path}}">
     <meta property="og:type" content="website">
     
-    <!-- Schema.org for Cognitive Understanding -->
+    <!-- Schema.org for AI Gateway Understanding -->
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
         "@type": "{{schemaType}}",
         "name": "{{title}}",
         "description": "{{description}}",
-        "url": "https://regima.site{{path}}",
+        "url": "https://gateway.regima.ai{{path}}",
         "publisher": {
             "@type": "Organization",
-            "name": "RégimA Zone",
-            "url": "https://regima.site"
+            "name": "RegimAI Gateway",
+            "url": "https://gateway.regima.ai"
         }
     }
     </script>
@@ -39,16 +42,17 @@
     <nav class="main-nav">
         <div class="nav-container">
             <a href="/" class="nav-logo">
-                <img src="/assets/images/regima-logo.png" alt="RégimA" />
+                <img src="/assets/images/regima-logo.png" alt="RegimAI Gateway" />
+                <span class="gateway-label">Gateway</span>
             </a>
             <ul class="nav-menu">
                 <li><a href="/" class="nav-link">Home</a></li>
-                <li><a href="/products/" class="nav-link">Products</a></li>
-                <li><a href="/blog/" class="nav-link">News</a></li>
-                <li><a href="/about-us/" class="nav-link">About Us</a></li>
-                <li><a href="/contact-us/" class="nav-link">Contact Us</a></li>
-                <li><a href="/faqs/" class="nav-link">FAQs</a></li>
-                <li><a href="/testimonials/" class="nav-link">Testimonials</a></li>
+                <li><a href="/gateway/" class="nav-link">Gateway</a></li>
+                <li><a href="/gateway/api-docs" class="nav-link">API Docs</a></li>
+                <li><a href="/gateway/services" class="nav-link">Services</a></li>
+                <li><a href="/cognitive/status" class="nav-link">Cognitive</a></li>
+                <li><a href="/about-us/" class="nav-link">About</a></li>
+                <li><a href="/contact-us/" class="nav-link">Contact</a></li>
             </ul>
         </div>
     </nav>
@@ -60,34 +64,46 @@
     <footer class="main-footer">
         <div class="footer-container">
             <div class="footer-section">
-                <h3>Information</h3>
+                <h3>Gateway</h3>
                 <ul>
-                    <li><a href="/about-us/">About Us</a></li>
-                    <li><a href="/contact-us/">Contact</a></li>
-                    <li><a href="/faqs/">FAQs</a></li>
+                    <li><a href="/gateway/">Overview</a></li>
+                    <li><a href="/gateway/api-docs">API Documentation</a></li>
+                    <li><a href="/gateway/services">Service Catalog</a></li>
+                    <li><a href="/health">Health Status</a></li>
                 </ul>
             </div>
             <div class="footer-section">
-                <h3>Products</h3>
+                <h3>AI Services</h3>
                 <ul>
-                    <li><a href="/products/anti-ageing/">Anti-Ageing</a></li>
-                    <li><a href="/products/day-preperations/">Day Preparations</a></li>
-                    <li><a href="/products/night-preparations/">Night Preparations</a></li>
+                    <li><a href="/v1/services">AI Models</a></li>
+                    <li><a href="/agents/capabilities">AI Agents</a></li>
+                    <li><a href="/data/services">Data Services</a></li>
+                    <li><a href="/tools/available">Tools</a></li>
                 </ul>
             </div>
             <div class="footer-section">
-                <h3>Connect</h3>
-                <div class="social-links">
-                    <a href="https://www.facebook.com/regimaglobal/" target="_blank">Facebook</a>
-                    <a href="https://twitter.com/RegimaZone" target="_blank">Twitter</a>
-                    <a href="https://www.linkedin.com/company/régima-global" target="_blank">LinkedIn</a>
-                </div>
+                <h3>Cognitive</h3>
+                <ul>
+                    <li><a href="/cognitive/status">SkinTwin Status</a></li>
+                    <li><a href="/cognitive/atomspace">AtomSpace</a></li>
+                    <li><a href="/cognitive/reasoning">PLN Reasoning</a></li>
+                    <li><a href="/cognitive/patterns">Pattern Mining</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Operations</h3>
+                <ul>
+                    <li><a href="/metrics">Metrics</a></li>
+                    <li><a href="/policies">Policies</a></li>
+                    <li><a href="/docs">Documentation</a></li>
+                    <li><a href="/contact-us">Support</a></li>
+                </ul>
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2024 RégimA Zone. All rights reserved.</p>
-            <!-- Cognitive Architecture Attribution -->
-            <p class="cognitive-attribution">Powered by SkinTwin Cognitive Architecture</p>
+            <p>&copy; 2024 RegimAI Gateway. All rights reserved.</p>
+            <!-- AI Gateway Attribution -->
+            <p class="cognitive-attribution">Powered by SkinTwin Cognitive Architecture & AI Gateway Technology</p>
         </div>
     </footer>
 

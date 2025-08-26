@@ -1,117 +1,127 @@
 ---
-title: Home
-description: RégimA is a unique, advanced, medically accepted, results driven, anti-ageing, skin rejuvenating range manufactured exclusively for the use of doctors and skin care professionals.
+title: RegimAI Gateway
+description: AI Gateway for dermatology and skincare cognitive services - unified interface for AI models, agents, and tools powered by SkinTwin architecture
 schemaType: WebSite
 path: /
 ---
 
 <section class="hero">
     <div class="hero-container">
-        <h1>RégimA PRODUCTS THAT CHANGE LIVES</h1>
-        <p>Advanced, medically accepted, results-driven anti-ageing and skin rejuvenation</p>
+        <h1>RegimAI Gateway</h1>
+        <p>AI Gateway for dermatology and skincare cognitive services</p>
         <div class="knowledge-graph">
-            <h4>🧠 Cognitive Knowledge Map</h4>
+            <h4>🚀 Gateway Architecture</h4>
             <div class="knowledge-nodes">
-                <span class="knowledge-node">Anti-Ageing</span>
-                <span class="knowledge-node">Skin Rejuvenation</span>
-                <span class="knowledge-node">Medical Grade</span>
-                <span class="knowledge-node">Professional Use</span>
-                <span class="knowledge-node">Award Winning</span>
+                <span class="knowledge-node">AI Models</span>
+                <span class="knowledge-node">AI Agents</span>
+                <span class="knowledge-node">Data Services</span>
+                <span class="knowledge-node">Tools & Functions</span>
+                <span class="knowledge-node">SkinTwin Cognitive</span>
             </div>
         </div>
     </div>
 </section>
 
 <section class="content-section">
-    <div class="product-intro">
-        <p>RégimA is a unique, advanced, medically accepted, results driven, anti-ageing, skin rejuvenating range manufactured exclusively for the use of doctors and skin care professionals.</p>
+    <div class="gateway-intro">
+        <p>The RegimAI Gateway provides a unified interface for AI services, agents, and tools specifically designed for dermatology and skincare applications. Built on the SkinTwin cognitive architecture, it enables intelligent routing, policy enforcement, and seamless integration of AI capabilities.</p>
         
-        <p>Multiple award winning, RégimA's status is cemented as a skin care leader in the world market. Ensuring actives are used at maximum efficacy, RégimA is a cosmeceutical focusing not only on AESTHETICS but SKIN HEALTH.</p>
+        <p>Our gateway ensures control and governance over AI service consumption while accelerating the development of intelligent dermatology applications. From personalized skincare consultations to professional diagnostic support, the RegimAI Gateway powers the next generation of AI-driven healthcare solutions.</p>
         
-        <p>Safely, gently and naturally, RégimA helps all skin types, skin problems, black, white, Asian, treating pigmentation, active acne, acne scarring, rejuvenating, restoring a youthful appearance, improving colour, tone and texture, smoothing away ageing lines and uneven skin colour, bringing back that glow of a good, healthy skin, irrespective of age.</p>
+        <p>With comprehensive policy management, content safety filtering, and domain-specific validation, healthcare providers and skincare professionals can confidently deploy AI services while maintaining compliance and ensuring patient safety.</p>
     </div>
 
-    <h2>Featured Products</h2>
-    <div class="product-grid">
-        <div class="product-card" data-category="cleansing-toning">
-            <img src="/assets/images/products/derma-deep-cleanser.jpg" alt="DERMA DEEP RICH CREAMY CLEANSER" />
-            <div class="product-card-content">
-                <h3>DERMA DEEP RICH CREAMY CLEANSER</h3>
-                <p class="product-category">Cleansing / Toning</p>
-                <p>Deep cleansing formula that gently removes impurities while maintaining skin's natural moisture balance.</p>
+    <h2>🏗️ Gateway Services</h2>
+    <div class="service-grid">
+        <div class="service-card" data-category="ai-models">
+            <div class="service-icon">🤖</div>
+            <div class="service-card-content">
+                <h3>AI Models & Services</h3>
+                <p class="service-category">Foundation AI</p>
+                <p>Access to OpenAI, Azure OpenAI, and Cognitive Services with dermatology-specific optimization and safety policies.</p>
+                <div class="service-endpoints">
+                    <code>/v1/openai</code>
+                    <code>/v1/azure-openai</code>
+                    <code>/v1/cognitive</code>
+                </div>
             </div>
         </div>
 
-        <div class="product-card" data-category="anti-ageing">
-            <img src="/assets/images/products/on-q-facial-oil.jpg" alt="ON Q QUENCHING FACIAL OIL" />
-            <div class="product-card-content">
-                <h3>"ON Q" QUENCHING FACIAL OIL</h3>
-                <p class="product-category">Anti-Ageing</p>
-                <p>Luxurious facial oil that deeply nourishes and hydrates while promoting skin regeneration.</p>
+        <div class="service-card" data-category="ai-agents">
+            <div class="service-icon">👥</div>
+            <div class="service-card-content">
+                <h3>AI Agents</h3>
+                <p class="service-category">Specialized Assistants</p>
+                <p>Intelligent agents for skincare consultation, dermatology assistance, and product recommendations with domain expertise.</p>
+                <div class="service-endpoints">
+                    <code>/agents/skincare-consultant</code>
+                    <code>/agents/dermatology-assistant</code>
+                    <code>/agents/product-advisor</code>
+                </div>
             </div>
         </div>
 
-        <div class="product-card" data-category="day-preparations">
-            <img src="/assets/images/products/super-smoother.jpg" alt="Super Smoother" />
-            <div class="product-card-content">
-                <h3>Super Smoother</h3>
-                <p class="product-category">Day Preparations</p>
-                <p>Advanced smoothing treatment that reduces fine lines and improves skin texture.</p>
+        <div class="service-card" data-category="data-services">
+            <div class="service-icon">💾</div>
+            <div class="service-card-content">
+                <h3>Data Services</h3>
+                <p class="service-category">Knowledge & Storage</p>
+                <p>Vector databases and knowledge graphs powered by the SkinTwin cognitive architecture for intelligent data retrieval.</p>
+                <div class="service-endpoints">
+                    <code>/data/vectors</code>
+                    <code>/data/knowledge</code>
+                </div>
             </div>
         </div>
 
-        <div class="product-card" data-category="day-preparations">
-            <img src="/assets/images/products/daily-ultra-defence.jpg" alt="Daily Ultra Defence" />
-            <div class="product-card-content">
-                <h3>Daily Ultra Defence</h3>
-                <p class="product-category">Day Preparations</p>
-                <p>Comprehensive daily protection with SPF and antioxidants to shield against environmental damage.</p>
+        <div class="service-card" data-category="tools">
+            <div class="service-icon">🔧</div>
+            <div class="service-card-content">
+                <h3>Tools & Functions</h3>
+                <p class="service-category">Specialized Tools</p>
+                <p>Advanced image analysis, routine generation, and other dermatology-specific tools with medical compliance.</p>
+                <div class="service-endpoints">
+                    <code>/tools/image-analysis</code>
+                    <code>/tools/routine-generator</code>
+                </div>
             </div>
         </div>
 
-        <div class="product-card" data-category="day-preparations">
-            <img src="/assets/images/products/daily-intelligent-sebum-solver.jpg" alt="Daily Intelligent Sebum-Solver" />
-            <div class="product-card-content">
-                <h3>Daily Intelligent Sebum-Solver</h3>
-                <p class="product-category">Day Preparations</p>
-                <p>Smart sebum control that balances oil production while maintaining hydration.</p>
+        <div class="service-card" data-category="cognitive">
+            <div class="service-icon">🧠</div>
+            <div class="service-card-content">
+                <h3>Cognitive Architecture</h3>
+                <p class="service-category">SkinTwin Integration</p>
+                <p>Direct access to AtomSpace, PLN reasoning, pattern mining, and temporal prediction capabilities.</p>
+                <div class="service-endpoints">
+                    <code>/cognitive/atomspace</code>
+                    <code>/cognitive/reasoning</code>
+                    <code>/cognitive/patterns</code>
+                </div>
             </div>
         </div>
 
-        <div class="product-card" data-category="day-preparations">
-            <img src="/assets/images/products/sensorial-daily-protector.jpg" alt="Sensorial Daily Protector" />
-            <div class="product-card-content">
-                <h3>Sensorial Daily Protector</h3>
-                <p class="product-category">Day Preparations</p>
-                <p>Lightweight daily protection that feels luxurious while defending against UV and pollution.</p>
-            </div>
-        </div>
-
-        <div class="product-card" data-category="day-preparations">
-            <img src="/assets/images/products/daily-radiant-boost.jpg" alt="Daily Radiant Boost" />
-            <div class="product-card-content">
-                <h3>Daily Radiant Boost</h3>
-                <p class="product-category">Day Preparations</p>
-                <p>Illuminating daily treatment that enhances skin's natural radiance and vitality.</p>
-            </div>
-        </div>
-
-        <div class="product-card" data-category="in-salon-treatments">
-            <img src="/assets/images/products/double-whammy.jpg" alt="THE DOUBLE WHAMMY" />
-            <div class="product-card-content">
-                <h3>THE DOUBLE WHAMMY</h3>
-                <p class="product-category">In-Salon Treatments</p>
-                <p>Professional-grade intensive treatment for dramatic skin transformation.</p>
+        <div class="service-card" data-category="monitoring">
+            <div class="service-icon">📊</div>
+            <div class="service-card-content">
+                <h3>Monitoring & Governance</h3>
+                <p class="service-category">Operations</p>
+                <p>Real-time metrics, policy enforcement, health monitoring, and comprehensive audit trails for all services.</p>
+                <div class="service-endpoints">
+                    <code>/metrics</code>
+                    <code>/health</code>
+                    <code>/policies</code>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="knowledge-graph">
-        <h4>🧠 SkinTwin Cognitive Analysis - Product Relationships</h4>
+        <h4>🧠 SkinTwin Cognitive Analysis - Service Relationships</h4>
         <div class="cognitive-insights">
-            <p><strong>Pattern Recognition:</strong> Daily protection products show high correlation with anti-ageing benefits</p>
-            <p><strong>Knowledge Mining:</strong> Cleansing products often precede moisturizing treatments in user workflows</p>
-            <p><strong>Temporal Prediction:</strong> Users viewing cleansers have 78% probability of viewing moisturizers next</p>
+            <p><strong>Intelligent Routing:</strong> Requests automatically routed to most appropriate AI service based on complexity</p>
+            <p><strong>Policy Enforcement:</strong> All services protected by medical compliance and content safety policies</p>
+            <p><strong>Load Balancing:</strong> Cognitive-aware distribution optimizes performance and accuracy</p>
         </div>
         <div class="knowledge-nodes">
             <!-- Dynamic nodes populated by cognitive-layer.js -->
@@ -119,12 +129,45 @@ path: /
     </div>
 </section>
 
-<!-- Cognitive Search Integration -->
 <section class="content-section">
-    <h2>🔍 Cognitive Product Discovery</h2>
-    <div class="cognitive-search-container">
-        <input type="text" id="cognitive-search" placeholder="Describe your skin concerns or goals..." class="cognitive-search-input">
-        <div id="cognitive-results" class="cognitive-results"></div>
+    <h2>🚀 Quick Start</h2>
+    <div class="quick-start-steps">
+        <div class="step">
+            <div class="step-number">1</div>
+            <h3>Get API Key</h3>
+            <p>Obtain your RegimA API key from the platform dashboard</p>
+        </div>
+        <div class="step">
+            <div class="step-number">2</div>
+            <h3>Choose Service</h3>
+            <p>Select from AI models, agents, data services, or tools</p>
+        </div>
+        <div class="step">
+            <div class="step-number">3</div>
+            <h3>Make Request</h3>
+            <p>Include your API key and start building intelligent applications</p>
+        </div>
     </div>
-    <p class="cognitive-help">Try searching for terms like "acne treatment", "anti-aging", "dry skin", or "pigmentation"</p>
+    
+    <div class="api-example">
+        <h3>Example Request</h3>
+        <pre><code>curl -X POST https://gateway.regima.ai/agents/skincare-consultant \
+  -H "X-API-Key: regima_your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "skinType": "combination",
+    "concerns": ["acne", "dark-spots"],
+    "goals": ["clear-skin", "even-tone"]
+  }'</code></pre>
+    </div>
+</section>
+
+<!-- Gateway Discovery -->
+<section class="content-section">
+    <h2>🔍 Service Discovery</h2>
+    <div class="service-discovery">
+        <input type="text" id="service-search" placeholder="Search for AI services, agents, or tools..." class="service-search-input">
+        <div id="service-results" class="service-results"></div>
+    </div>
+    <p class="discovery-help">Try searching for "skincare consultation", "image analysis", "product recommendation", or "cognitive reasoning"</p>
 </section>

@@ -1,0 +1,306 @@
+<!--
+    SkinTwin Cognitive Policy for Azure API Management
+    
+    This policy integrates cognitive architecture components:
+    - AtomSpace knowledge queries
+    - PLN reasoning validation
+    - Medical compliance checking
+    - Evidence-based response filtering
+    - Cognitive complexity assessment
+-->
+<policies>
+    <inbound>
+        <!-- Set cognitive context headers -->
+        <set-header name="X-Cognitive-Domain" exists-action="override">
+            <value>dermatology</value>
+        </set-header>
+        <set-header name="X-Medical-Context" exists-action="override">
+            <value>true</value>
+        </set-header>
+        <set-header name="X-Evidence-Required" exists-action="override">
+            <value>clinical_studies</value>
+        </set-header>
+
+        <!-- Assess cognitive complexity of the request -->
+        <send-request mode="new" response-variable-name="cognitiveAnalysis" timeout="10" ignore-error="false">
+            <set-url>https://cognitive-complexity-analyzer.azurewebsites.net/analyze</set-url>
+            <set-method>POST</set-method>
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+            </set-header>
+            <set-body>@{
+                return new JObject(
+                    new JProperty("request_body", context.Request.Body.As<string>(preserveContent: true)),
+                    new JProperty("domain", "dermatology"),
+                    new JProperty("medical_context", true),
+                    new JProperty("assess_complexity", true)
+                ).ToString();
+            }</set-body>
+        </send-request>
+
+        <!-- Extract complexity metrics -->
+        <set-variable name="complexityScore" value="@(((JObject)context.Variables["cognitiveAnalysis"]).SelectToken("complexity.score").Value<double>())" />
+        <set-variable name="medicalTerminology" value="@(((JObject)context.Variables["cognitiveAnalysis"]).SelectToken("analysis.medical_terminology").Value<double>())" />
+        <set-variable name="reasoningRequired" value="@(((JObject)context.Variables["cognitiveAnalysis"]).SelectToken("analysis.reasoning_complexity").Value<double>())" />
+
+        <!-- Set cognitive routing based on complexity -->
+        <choose>
+            <when condition="@(context.Variables.GetValueOrDefault<double>("complexityScore", 0) > 0.8)">
+                <set-backend-service base-url="https://specialist-medical-ai.azurewebsites.net" />
+                <set-header name="X-Cognitive-Route" exists-action="override">
+                    <value>specialist_medical</value>
+                </set-header>
+                <set-header name="X-Processing-Priority" exists-action="override">
+                    <value>high</value>
+                </set-header>
+            </when>
+            <when condition="@(context.Variables.GetValueOrDefault<double>("complexityScore", 0) > 0.6)">
+                <set-backend-service base-url="https://advanced-dermatology-ai.azurewebsites.net" />
+                <set-header name="X-Cognitive-Route" exists-action="override">
+                    <value>advanced_dermatology</value>
+                </set-header>
+                <set-header name="X-Processing-Priority" exists-action="override">
+                    <value>medium</value>
+                </set-header>
+            </when>
+            <when condition="@(context.Variables.GetValueOrDefault<double>("complexityScore", 0) > 0.4)">
+                <set-backend-service base-url="https://general-medical-ai.azurewebsites.net" />
+                <set-header name="X-Cognitive-Route" exists-action="override">
+                    <value>general_medical</value>
+                </set-header>
+            </when>
+            <otherwise>
+                <set-backend-service base-url="https://basic-skincare-ai.azurewebsites.net" />
+                <set-header name="X-Cognitive-Route" exists-action="override">
+                    <value>basic_skincare</value>
+                </set-header>
+            </otherwise>
+        </choose>
+
+        <!-- Medical content safety pre-screening -->
+        <llm-content-safety>
+            <name>medical-content-safety</name>
+            <input>@(context.Request.Body.As<string>(preserveContent: true))</input>
+            <categories>
+                <category>medical_accuracy</category>
+                <category>harmful_medical_advice</category>
+                <category>inappropriate_diagnosis</category>
+                <category>regulatory_compliance</category>
+            </categories>
+            <thresholds>
+                <medical_accuracy>high</medical_accuracy>
+                <harmful_medical_advice>zero_tolerance</harmful_medical_advice>
+                <inappropriate_diagnosis>medium</inappropriate_diagnosis>
+                <regulatory_compliance>high</regulatory_compliance>
+            </thresholds>
+            <action>block</action>
+            <response-code>400</response-code>
+            <response-message>Medical content safety violation detected</response-message>
+        </llm-content-safety>
+
+        <!-- AtomSpace knowledge integration -->
+        <send-request mode="new" response-variable-name="atomspaceContext" timeout="5" ignore-error="true">
+            <set-url>https://skintwin-atomspace.azurewebsites.net/query-context</set-url>
+            <set-method>POST</set-method>
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+            </set-header>
+            <set-body>@{
+                return new JObject(
+                    new JProperty("request", context.Request.Body.As<string>(preserveContent: true)),
+                    new JProperty("domain", "dermatology"),
+                    new JProperty("include_evidence", true),
+                    new JProperty("truth_values", true)
+                ).ToString();
+            }</set-body>
+        </send-request>
+
+        <!-- Add AtomSpace context to request -->
+        <set-header name="X-AtomSpace-Context" exists-action="override">
+            <value>@(context.Variables.ContainsKey("atomspaceContext") ? ((JObject)context.Variables["atomspaceContext"]).ToString() : "{}")</value>
+        </set-header>
+
+        <!-- Rate limiting with medical priority -->
+        <rate-limit-by-key calls="100" renewal-period="3600" counter-key="@(context.Request.IpAddress + "_medical")" />
+        
+        <!-- Enhanced rate limiting for high complexity requests -->
+        <choose>
+            <when condition="@(context.Variables.GetValueOrDefault<double>("complexityScore", 0) > 0.7)">
+                <rate-limit-by-key calls="20" renewal-period="3600" counter-key="@(context.Request.IpAddress + "_complex_medical")" />
+            </when>
+        </choose>
+
+        <!-- Token usage optimization for medical requests -->
+        <llm-token-limit tokens="4000" estimate-prompt-tokens="true">
+            <api-key>{{openai-api-key}}</api-key>
+        </llm-token-limit>
+
+        <!-- Authentication and medical compliance validation -->
+        <validate-jwt header-name="Authorization" failed-validation-httpcode="401" failed-validation-error-message="Medical API access requires valid authentication">
+            <openid-config url="https://login.microsoftonline.com/{{tenant-id}}/v2.0/.well-known/openid_configuration" />
+            <required-claims>
+                <claim name="scope" match="any">
+                    <value>medical.read</value>
+                    <value>dermatology.access</value>
+                </claim>
+                <claim name="medical_certified" match="exact">
+                    <value>true</value>
+                </claim>
+            </required-claims>
+        </validate-jwt>
+
+        <!-- Set request ID for medical audit trail -->
+        <set-variable name="requestId" value="@(Guid.NewGuid().ToString())" />
+        <set-header name="X-Medical-Request-ID" exists-action="override">
+            <value>@(context.Variables["requestId"])</value>
+        </set-header>
+
+        <!-- Log medical request for HIPAA compliance -->
+        <log-to-eventhub logger-id="medical-audit-logger" partition-id="0">
+            @{
+                return new JObject(
+                    new JProperty("timestamp", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")),
+                    new JProperty("request_id", context.Variables["requestId"]),
+                    new JProperty("operation", context.Operation.Name),
+                    new JProperty("user", context.User?.Identity?.Name ?? "anonymous"),
+                    new JProperty("complexity_score", context.Variables.GetValueOrDefault<double>("complexityScore", 0)),
+                    new JProperty("cognitive_route", context.Request.Headers.GetValueOrDefault("X-Cognitive-Route", "unknown")),
+                    new JProperty("medical_context", true),
+                    new JProperty("compliance_framework", "HIPAA")
+                ).ToString();
+            }
+        </log-to-eventhub>
+    </inbound>
+
+    <backend>
+        <!-- Backend selection handled in inbound policy -->
+        <forward-request timeout="120" />
+    </backend>
+
+    <outbound>
+        <!-- PLN reasoning validation on response -->
+        <send-request mode="new" response-variable-name="plnValidation" timeout="10" ignore-error="true">
+            <set-url>https://skintwin-pln.azurewebsites.net/validate-response</set-url>
+            <set-method>POST</set-method>
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+            </set-header>
+            <set-body>@{
+                return new JObject(
+                    new JProperty("response", context.Response.Body.As<string>(preserveContent: true)),
+                    new JProperty("request_context", context.Request.Body.As<string>()),
+                    new JProperty("evidence_required", true),
+                    new JProperty("medical_validation", true)
+                ).ToString();
+            }</set-body>
+        </send-request>
+
+        <!-- Add PLN validation results -->
+        <set-header name="X-PLN-Validation" exists-action="override">
+            <value>@{
+                if (context.Variables.ContainsKey("plnValidation")) {
+                    var validation = (JObject)context.Variables["plnValidation"];
+                    return validation.SelectToken("validation_passed")?.Value<bool>() == true ? "passed" : "failed";
+                }
+                return "not_available";
+            }</value>
+        </set-header>
+
+        <!-- Medical response compliance filtering -->
+        <llm-content-safety>
+            <name>medical-response-safety</name>
+            <input>@(context.Response.Body.As<string>(preserveContent: true))</input>
+            <categories>
+                <category>medical_accuracy</category>
+                <category>inappropriate_medical_advice</category>
+                <category>missing_disclaimers</category>
+                <category>overstated_claims</category>
+            </categories>
+            <thresholds>
+                <medical_accuracy>high</medical_accuracy>
+                <inappropriate_medical_advice>zero_tolerance</inappropriate_medical_advice>
+                <missing_disclaimers>medium</missing_disclaimers>
+                <overstated_claims>medium</overstated_claims>
+            </thresholds>
+            <action>filter</action>
+        </llm-content-safety>
+
+        <!-- Add cognitive metadata to response -->
+        <set-header name="X-Cognitive-Architecture" exists-action="override">
+            <value>SkinTwin-v1.0</value>
+        </set-header>
+        <set-header name="X-Knowledge-Source" exists-action="override">
+            <value>AtomSpace-Dermatology-Ontology</value>
+        </set-header>
+        <set-header name="X-Evidence-Level" exists-action="override">
+            <value>clinical_studies</value>
+        </set-header>
+        <set-header name="X-Medical-Disclaimer" exists-action="override">
+            <value>For educational purposes only. Consult healthcare professional for medical advice.</value>
+        </set-header>
+
+        <!-- Token usage metrics for medical billing -->
+        <llm-emit-token-metric>
+            <dimension name="medical_context">true</dimension>
+            <dimension name="cognitive_route">@(context.Request.Headers.GetValueOrDefault("X-Cognitive-Route", "unknown"))</dimension>
+            <dimension name="complexity_level">@{
+                var score = context.Variables.GetValueOrDefault<double>("complexityScore", 0);
+                return score > 0.7 ? "high" : score > 0.4 ? "medium" : "low";
+            }</dimension>
+            <dimension name="domain">dermatology</dimension>
+        </llm-emit-token-metric>
+
+        <!-- Medical audit logging for response -->
+        <log-to-eventhub logger-id="medical-audit-logger" partition-id="0">
+            @{
+                return new JObject(
+                    new JProperty("timestamp", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")),
+                    new JProperty("request_id", context.Variables["requestId"]),
+                    new JProperty("response_status", context.Response.StatusCode),
+                    new JProperty("pln_validation", context.Response.Headers.GetValueOrDefault("X-PLN-Validation", "unknown")),
+                    new JProperty("content_safety_passed", true),
+                    new JProperty("medical_compliance", "HIPAA"),
+                    new JProperty("cognitive_route", context.Request.Headers.GetValueOrDefault("X-Cognitive-Route", "unknown"))
+                ).ToString();
+            }
+        </log-to-eventhub>
+    </outbound>
+
+    <on-error>
+        <!-- Enhanced error handling for medical context -->
+        <set-header name="X-Error-Context" exists-action="override">
+            <value>medical_api_error</value>
+        </set-header>
+        
+        <!-- Log medical errors for compliance -->
+        <log-to-eventhub logger-id="medical-audit-logger" partition-id="0">
+            @{
+                return new JObject(
+                    new JProperty("timestamp", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")),
+                    new JProperty("request_id", context.Variables.GetValueOrDefault("requestId", "unknown")),
+                    new JProperty("error_type", "medical_api_error"),
+                    new JProperty("error_message", context.LastError?.Message ?? "unknown"),
+                    new JProperty("error_source", context.LastError?.Source ?? "unknown"),
+                    new JProperty("medical_context", true)
+                ).ToString();
+            }
+        </log-to-eventhub>
+
+        <!-- Return medical-appropriate error response -->
+        <return-response>
+            <set-status code="500" reason="Medical Service Error" />
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+            </set-header>
+            <set-body>@{
+                return new JObject(
+                    new JProperty("error", "Medical service temporarily unavailable"),
+                    new JProperty("message", "Please consult with a healthcare professional"),
+                    new JProperty("request_id", context.Variables.GetValueOrDefault("requestId", "unknown")),
+                    new JProperty("support", "For technical support, contact: medical-ai-support@regima.ai"),
+                    new JProperty("medical_disclaimer", "This service is for informational purposes only and does not replace professional medical advice")
+                ).ToString();
+            }</set-body>
+        </return-response>
+    </on-error>
+</policies>

@@ -1,0 +1,280 @@
+<!--
+    ESN Progression Modeling Policy
+    Echo State Networks for temporal skin condition prediction
+
+    This policy implements:
+    1. Time series data validation
+    2. Prediction horizon limits
+    3. Medical data privacy protection
+    4. Prediction confidence thresholds
+    5. Clinical safety disclaimers
+-->
+<policies>
+    <inbound>
+        <base />
+
+        <!-- Validate ESN API authentication -->
+        <validate-azure-ad-token tenant-id="{{tenant-id}}" failed-validation-httpcode="401" failed-validation-error-message="Unauthorized: Invalid ESN access token">
+            <audiences>
+                <audience>{{esn-api-audience}}</audience>
+            </audiences>
+        </validate-azure-ad-token>
+
+        <!-- Set ESN operation context -->
+        <set-variable name="esnOperation" value="@(context.Operation.Id)" />
+        <set-variable name="requestBody" value="@(context.Request.Body.As<JObject>(preserveContent: true))" />
+
+        <!-- Validate prediction request -->
+        <choose>
+            <when condition="@(context.Operation.Id == "predict-progression")">
+                <!-- Validate required fields -->
+                <set-variable name="condition" value="@{
+                    var body = (JObject)context.Variables["requestBody"];
+                    return body?["condition"]?.ToString() ?? "";
+                }" />
+
+                <set-variable name="historicalData" value="@{
+                    var body = (JObject)context.Variables["requestBody"];
+                    return body?["historical_data"] as JArray ?? new JArray();
+                }" />
+
+                <!-- Require minimum historical data points -->
+                <choose>
+                    <when condition="@(((JArray)context.Variables["historicalData"]).Count < 3)">
+                        <return-response>
+                            <set-status code="400" reason="Bad Request" />
+                            <set-body>@{
+                                return new JObject(
+                                    new JProperty("error", "insufficient_data"),
+                                    new JProperty("message", "Minimum 3 historical data points required for prediction"),
+                                    new JProperty("received", ((JArray)context.Variables["historicalData"]).Count),
+                                    new JProperty("required", 3)
+                                ).ToString();
+                            }</set-body>
+                        </return-response>
+                    </when>
+                </choose>
+
+                <!-- Validate prediction horizon -->
+                <set-variable name="predictionHorizon" value="@{
+                    var body = (JObject)context.Variables["requestBody"];
+                    return body?["prediction_horizon_days"]?.Value<int>() ?? 30;
+                }" />
+
+                <choose>
+                    <when condition="@((int)context.Variables["predictionHorizon"] > 180)">
+                        <return-response>
+                            <set-status code="400" reason="Bad Request" />
+                            <set-body>@{
+                                return new JObject(
+                                    new JProperty("error", "horizon_exceeded"),
+                                    new JProperty("message", "Prediction horizon cannot exceed 180 days for medical accuracy"),
+                                    new JProperty("requested_days", (int)context.Variables["predictionHorizon"]),
+                                    new JProperty("max_days", 180)
+                                ).ToString();
+                            }</set-body>
+                        </return-response>
+                    </when>
+                </choose>
+            </when>
+        </choose>
+
+        <!-- Validate time series data format -->
+        <choose>
+            <when condition="@(context.Operation.Id.Contains("predict") || context.Operation.Id.Contains("analyze"))">
+                <set-variable name="dataValidation" value="@{
+                    var body = (JObject)context.Variables["requestBody"];
+                    var data = body?["historical_data"] as JArray;
+
+                    if (data == null) return new JObject(new JProperty("valid", true));
+
+                    var errors = new JArray();
+
+                    foreach (JObject point in data) {
+                        // Check required fields
+                        if (point["date"] == null) {
+                            errors.Add("Missing 'date' field in data point");
+                        }
+                        if (point["severity"] == null) {
+                            errors.Add("Missing 'severity' field in data point");
+                        } else {
+                            var severity = point["severity"].Value<double>();
+                            if (severity < 0 || severity > 1) {
+                                errors.Add($"Severity must be between 0 and 1, got {severity}");
+                            }
+                        }
+                    }
+
+                    return new JObject(
+                        new JProperty("valid", errors.Count == 0),
+                        new JProperty("errors", errors)
+                    );
+                }" />
+
+                <choose>
+                    <when condition="@(!((JObject)context.Variables["dataValidation"])["valid"].Value<bool>())">
+                        <return-response>
+                            <set-status code="400" reason="Bad Request" />
+                            <set-body>@{
+                                var validation = (JObject)context.Variables["dataValidation"];
+                                return new JObject(
+                                    new JProperty("error", "data_validation_error"),
+                                    new JProperty("message", "Invalid time series data format"),
+                                    new JProperty("errors", validation["errors"])
+                                ).ToString();
+                            }</set-body>
+                        </return-response>
+                    </when>
+                </choose>
+            </when>
+        </choose>
+
+        <!-- Privacy protection - anonymize patient data -->
+        <set-variable name="patientIdHash" value="@{
+            var body = (JObject)context.Variables["requestBody"];
+            var patientId = body?["patient_id"]?.ToString() ?? "";
+            if (string.IsNullOrEmpty(patientId)) return "";
+
+            using (var sha = System.Security.Cryptography.SHA256.Create()) {
+                var hash = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(patientId));
+                return Convert.ToBase64String(hash).Substring(0, 16);
+            }
+        }" />
+
+        <!-- Set ESN configuration headers -->
+        <set-header name="X-ESN-Operation" exists-action="override">
+            <value>@((string)context.Variables["esnOperation"])</value>
+        </set-header>
+        <set-header name="X-ESN-Patient-Hash" exists-action="override">
+            <value>@((string)context.Variables["patientIdHash"])</value>
+        </set-header>
+        <set-header name="X-Prediction-Horizon" exists-action="override">
+            <value>@(context.Variables.GetValueOrDefault("predictionHorizon", 30).ToString())</value>
+        </set-header>
+
+        <!-- Rate limiting for prediction requests -->
+        <rate-limit-by-key calls="30" renewal-period="60" counter-key="@(context.Subscription.Id + "-esn")" />
+
+        <!-- Route to appropriate backend -->
+        <choose>
+            <when condition="@(context.Operation.Id == "predict-progression")">
+                <set-backend-service backend-id="esn-predictor-backend" />
+            </when>
+            <when condition="@(context.Operation.Id == "analyze-patterns")">
+                <set-backend-service backend-id="esn-analyzer-backend" />
+            </when>
+            <when condition="@(context.Operation.Id == "predict-treatment-response")">
+                <set-backend-service backend-id="esn-treatment-backend" />
+            </when>
+            <otherwise>
+                <set-backend-service backend-id="{backend-id}" />
+            </otherwise>
+        </choose>
+    </inbound>
+
+    <backend>
+        <base />
+
+        <!-- Extended timeout for complex predictions -->
+        <retry condition="@(context.Response.StatusCode >= 500)" count="2" interval="3" first-fast-retry="false">
+            <forward-request timeout="120" />
+        </retry>
+    </backend>
+
+    <outbound>
+        <base />
+
+        <!-- Process prediction results -->
+        <choose>
+            <when condition="@(context.Response.StatusCode == 200)">
+                <set-variable name="responseBody" value="@(context.Response.Body.As<JObject>(preserveContent: true))" />
+
+                <!-- Add prediction metadata and disclaimers -->
+                <set-body>@{
+                    var response = (JObject)context.Variables["responseBody"];
+
+                    // Add prediction confidence threshold warning
+                    var predictions = response["predictions"] as JArray;
+                    if (predictions != null) {
+                        foreach (JObject pred in predictions) {
+                            var confidence = pred["confidence"]?.Value<double>() ?? 0;
+                            if (confidence < 0.7) {
+                                pred["confidence_warning"] = "Low confidence prediction - interpret with caution";
+                            }
+                        }
+                    }
+
+                    // Add medical disclaimer
+                    response["disclaimer"] = new JObject(
+                        new JProperty("message", "These predictions are based on historical patterns and machine learning models. They should not replace professional medical diagnosis or treatment decisions."),
+                        new JProperty("model_type", "Echo State Network (ESN)"),
+                        new JProperty("prediction_uncertainty", "Predictions further in the future have higher uncertainty"),
+                        new JProperty("clinical_validation", "Required before clinical use")
+                    );
+
+                    // Add model metadata
+                    response["model_metadata"] = new JObject(
+                        new JProperty("algorithm", "Echo State Network"),
+                        new JProperty("version", "1.0"),
+                        new JProperty("timestamp", DateTime.UtcNow.ToString("o")),
+                        new JProperty("reservoir_size", 500),
+                        new JProperty("spectral_radius", 0.95)
+                    );
+
+                    // Remove any PII from response
+                    response.Remove("patient_id");
+                    response["patient_hash"] = context.Variables["patientIdHash"];
+
+                    return response.ToString();
+                }</set-body>
+            </when>
+        </choose>
+
+        <!-- Add ESN response headers -->
+        <set-header name="X-ESN-Version" exists-action="override">
+            <value>1.0</value>
+        </set-header>
+        <set-header name="X-Prediction-Id" exists-action="override">
+            <value>@(Guid.NewGuid().ToString())</value>
+        </set-header>
+        <set-header name="X-Medical-Disclaimer" exists-action="override">
+            <value>AI predictions require clinical validation</value>
+        </set-header>
+
+        <!-- Emit prediction metrics -->
+        <emit-metric name="esn_prediction_request" value="1" namespace="esn">
+            <dimension name="operation" value="@(context.Operation.Id)" />
+            <dimension name="condition" value="@((string)context.Variables.GetValueOrDefault("condition", "unknown"))" />
+            <dimension name="horizon_days" value="@(context.Variables.GetValueOrDefault("predictionHorizon", 30).ToString())" />
+            <dimension name="success" value="@(context.Response.StatusCode == 200 ? "true" : "false")" />
+        </emit-metric>
+    </outbound>
+
+    <on-error>
+        <base />
+
+        <!-- Handle ESN-specific errors -->
+        <choose>
+            <when condition="@(context.LastError.Source == "esn-predictor")">
+                <return-response>
+                    <set-status code="500" reason="Prediction Error" />
+                    <set-body>@{
+                        return new JObject(
+                            new JProperty("error", "prediction_failed"),
+                            new JProperty("message", "Progression prediction could not be completed"),
+                            new JProperty("details", context.LastError.Message),
+                            new JProperty("recommendation", "Ensure historical data is sufficient and properly formatted"),
+                            new JProperty("request_id", context.RequestId)
+                        ).ToString();
+                    }</set-body>
+                </return-response>
+            </when>
+        </choose>
+
+        <!-- Log prediction failures -->
+        <emit-metric name="esn_prediction_error" value="1" namespace="esn">
+            <dimension name="error_type" value="@(context.LastError.Reason)" />
+            <dimension name="operation" value="@(context.Operation.Id)" />
+        </emit-metric>
+    </on-error>
+</policies>

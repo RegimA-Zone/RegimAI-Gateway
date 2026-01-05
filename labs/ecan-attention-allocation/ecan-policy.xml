@@ -1,0 +1,193 @@
+<!--
+    ECAN Attention Allocation Policy
+    Economic Attention Network for cognitive resource management
+
+    This policy implements:
+    1. Attention budget validation
+    2. Component priority enforcement
+    3. Resource allocation tracking
+    4. Attention spreading rate limits
+    5. Cognitive load balancing
+-->
+<policies>
+    <inbound>
+        <base />
+
+        <!-- Set ECAN operation context -->
+        <set-variable name="ecanOperation" value="@(context.Operation.Id)" />
+        <set-variable name="requestBody" value="@(context.Request.Body.As<JObject>(preserveContent: true))" />
+
+        <!-- Validate attention budget -->
+        <choose>
+            <when condition="@(context.Operation.Id == "allocate-attention")">
+                <set-variable name="budgetLimit" value="@{
+                    var body = (JObject)context.Variables["requestBody"];
+                    return body?["budget_limit"]?.Value<int>() ?? 500;
+                }" />
+
+                <!-- Enforce maximum budget per request -->
+                <choose>
+                    <when condition="@((int)context.Variables["budgetLimit"] > 1000)">
+                        <return-response>
+                            <set-status code="400" reason="Bad Request" />
+                            <set-body>@{
+                                return new JObject(
+                                    new JProperty("error", "budget_exceeded"),
+                                    new JProperty("message", "Attention budget cannot exceed 1000 per request"),
+                                    new JProperty("requested", (int)context.Variables["budgetLimit"]),
+                                    new JProperty("maximum", 1000)
+                                ).ToString();
+                            }</set-body>
+                        </return-response>
+                    </when>
+                </choose>
+            </when>
+        </choose>
+
+        <!-- Calculate component priorities based on request context -->
+        <set-variable name="componentPriorities" value="@{
+            var body = (JObject)context.Variables["requestBody"];
+            var context = body?["request_context"] as JObject ?? new JObject();
+
+            var queryType = context["query_type"]?.ToString() ?? "general";
+            var complexity = context["complexity"]?.ToString() ?? "medium";
+            var urgency = context["urgency"]?.ToString() ?? "normal";
+
+            var priorities = new JObject();
+
+            // Adjust priorities based on query type
+            switch (queryType.ToLower()) {
+                case "clinical_diagnosis":
+                    priorities["pln_reasoning"] = 0.40;
+                    priorities["atomspace"] = 0.30;
+                    priorities["moses_optimization"] = 0.15;
+                    priorities["esn_prediction"] = 0.10;
+                    priorities["agent_responses"] = 0.05;
+                    break;
+                case "treatment_optimization":
+                    priorities["moses_optimization"] = 0.40;
+                    priorities["pln_reasoning"] = 0.25;
+                    priorities["atomspace"] = 0.20;
+                    priorities["esn_prediction"] = 0.10;
+                    priorities["agent_responses"] = 0.05;
+                    break;
+                case "progression_prediction":
+                    priorities["esn_prediction"] = 0.45;
+                    priorities["atomspace"] = 0.25;
+                    priorities["pln_reasoning"] = 0.15;
+                    priorities["moses_optimization"] = 0.10;
+                    priorities["agent_responses"] = 0.05;
+                    break;
+                case "consumer_consultation":
+                    priorities["agent_responses"] = 0.35;
+                    priorities["atomspace"] = 0.30;
+                    priorities["pln_reasoning"] = 0.20;
+                    priorities["moses_optimization"] = 0.10;
+                    priorities["esn_prediction"] = 0.05;
+                    break;
+                default:
+                    priorities["atomspace"] = 0.25;
+                    priorities["pln_reasoning"] = 0.25;
+                    priorities["moses_optimization"] = 0.20;
+                    priorities["esn_prediction"] = 0.15;
+                    priorities["agent_responses"] = 0.15;
+                    break;
+            }
+
+            // Adjust for complexity
+            if (complexity.ToLower() == "high") {
+                // Increase reasoning for complex queries
+                var current = priorities["pln_reasoning"].Value<double>();
+                priorities["pln_reasoning"] = Math.Min(0.50, current + 0.10);
+            }
+
+            // Adjust for urgency
+            if (urgency.ToLower() == "high") {
+                // Reduce optimization for urgent queries (faster response)
+                var current = priorities["moses_optimization"].Value<double>();
+                priorities["moses_optimization"] = Math.Max(0.05, current - 0.10);
+                priorities["agent_responses"] = priorities["agent_responses"].Value<double>() + 0.10;
+            }
+
+            return priorities;
+        }" />
+
+        <!-- Set attention headers -->
+        <set-header name="X-ECAN-Operation" exists-action="override">
+            <value>@((string)context.Variables["ecanOperation"])</value>
+        </set-header>
+        <set-header name="X-Component-Priorities" exists-action="override">
+            <value>@(((JObject)context.Variables["componentPriorities"]).ToString(Newtonsoft.Json.Formatting.None))</value>
+        </set-header>
+
+        <!-- Rate limiting for attention operations -->
+        <rate-limit-by-key calls="100" renewal-period="60" counter-key="@(context.Subscription.Id + "-ecan")" />
+
+        <!-- Route to ECAN backend -->
+        <set-backend-service backend-id="ecan-backend" />
+    </inbound>
+
+    <backend>
+        <base />
+        <forward-request timeout="30" />
+    </backend>
+
+    <outbound>
+        <base />
+
+        <!-- Add attention allocation results -->
+        <choose>
+            <when condition="@(context.Response.StatusCode == 200)">
+                <set-variable name="responseBody" value="@(context.Response.Body.As<JObject>(preserveContent: true))" />
+
+                <set-body>@{
+                    var response = (JObject)context.Variables["responseBody"];
+
+                    // Add ECAN metadata
+                    response["ecan_metadata"] = new JObject(
+                        new JProperty("timestamp", DateTime.UtcNow.ToString("o")),
+                        new JProperty("component_priorities", context.Variables["componentPriorities"]),
+                        new JProperty("attention_budget_used", response["budget_used"]?.Value<int>() ?? 0),
+                        new JProperty("spreading_applied", response["spreading_applied"]?.Value<bool>() ?? false)
+                    );
+
+                    return response.ToString();
+                }</set-body>
+            </when>
+        </choose>
+
+        <!-- Add ECAN response headers -->
+        <set-header name="X-ECAN-Version" exists-action="override">
+            <value>1.0</value>
+        </set-header>
+        <set-header name="X-Attention-Allocated" exists-action="override">
+            <value>@(context.Variables.GetValueOrDefault("budgetLimit", 0).ToString())</value>
+        </set-header>
+
+        <!-- Emit attention metrics -->
+        <emit-metric name="ecan_attention_allocation" value="1" namespace="ecan">
+            <dimension name="operation" value="@(context.Operation.Id)" />
+            <dimension name="success" value="@(context.Response.StatusCode == 200 ? "true" : "false")" />
+        </emit-metric>
+    </outbound>
+
+    <on-error>
+        <base />
+
+        <return-response>
+            <set-status code="500" reason="ECAN Error" />
+            <set-body>@{
+                return new JObject(
+                    new JProperty("error", "ecan_error"),
+                    new JProperty("message", "Attention allocation failed"),
+                    new JProperty("details", context.LastError.Message),
+                    new JProperty("request_id", context.RequestId)
+                ).ToString();
+            }</set-body>
+        </return-response>
+
+        <emit-metric name="ecan_error" value="1" namespace="ecan">
+            <dimension name="error_type" value="@(context.LastError.Reason)" />
+        </emit-metric>
+    </on-error>
+</policies>

@@ -1,0 +1,292 @@
+<!--
+    Dermatology AI Agents Policy
+    Specialized policies for skincare and clinical dermatology agents
+
+    This policy implements:
+    1. Agent-specific authentication and authorization
+    2. Professional credential verification for clinical agents
+    3. Conversation context management
+    4. Medical safety guardrails
+    5. Response quality enforcement
+-->
+<policies>
+    <inbound>
+        <base />
+
+        <!-- Validate Agent API authentication -->
+        <validate-azure-ad-token tenant-id="{{tenant-id}}" failed-validation-httpcode="401" failed-validation-error-message="Unauthorized: Invalid agent access token">
+            <audiences>
+                <audience>{{agents-api-audience}}</audience>
+            </audiences>
+        </validate-azure-ad-token>
+
+        <!-- Extract agent type from operation -->
+        <set-variable name="agentType" value="@{
+            var opId = context.Operation.Id;
+            if (opId.StartsWith("skincare-consultant")) return "skincare_consultant";
+            if (opId.StartsWith("clinical-assistant")) return "clinical_assistant";
+            if (opId.StartsWith("product-advisor")) return "product_advisor";
+            return "unknown";
+        }" />
+
+        <set-variable name="requestBody" value="@(context.Request.Body.As<JObject>(preserveContent: true))" />
+
+        <!-- Clinical Assistant: Require professional credentials -->
+        <choose>
+            <when condition="@((string)context.Variables["agentType"] == "clinical_assistant")">
+                <!-- Verify healthcare professional credentials -->
+                <set-variable name="professionalCredentials" value="@{
+                    var token = context.Request.Headers.GetValueOrDefault("X-Professional-Credentials", "");
+                    // In production, validate against credential verification service
+                    return !string.IsNullOrEmpty(token);
+                }" />
+
+                <choose>
+                    <when condition="@(!(bool)context.Variables["professionalCredentials"])">
+                        <return-response>
+                            <set-status code="403" reason="Forbidden" />
+                            <set-body>@{
+                                return new JObject(
+                                    new JProperty("error", "credentials_required"),
+                                    new JProperty("message", "Clinical assistant requires verified healthcare professional credentials"),
+                                    new JProperty("instruction", "Include X-Professional-Credentials header with valid credentials token")
+                                ).ToString();
+                            }</set-body>
+                        </return-response>
+                    </when>
+                </choose>
+
+                <!-- Add clinical context to request -->
+                <set-header name="X-Agent-Mode" exists-action="override">
+                    <value>clinical</value>
+                </set-header>
+            </when>
+        </choose>
+
+        <!-- Validate session management -->
+        <choose>
+            <when condition="@(context.Operation.Id.Contains("chat"))">
+                <set-variable name="sessionId" value="@{
+                    var body = (JObject)context.Variables["requestBody"];
+                    return body?["session_id"]?.ToString() ?? "";
+                }" />
+
+                <choose>
+                    <when condition="@(string.IsNullOrEmpty((string)context.Variables["sessionId"]))">
+                        <!-- Auto-generate session ID if not provided -->
+                        <set-variable name="sessionId" value="@(Guid.NewGuid().ToString())" />
+                    </when>
+                </choose>
+
+                <set-header name="X-Session-Id" exists-action="override">
+                    <value>@((string)context.Variables["sessionId"])</value>
+                </set-header>
+            </when>
+        </choose>
+
+        <!-- Content safety validation for user messages -->
+        <set-variable name="userMessage" value="@{
+            var body = (JObject)context.Variables["requestBody"];
+            return body?["message"]?.ToString() ?? "";
+        }" />
+
+        <!-- Block requests for prescription-only advice without clinical credentials -->
+        <choose>
+            <when condition="@{
+                var msg = ((string)context.Variables["userMessage"]).ToLower();
+                var agentType = (string)context.Variables["agentType"];
+                var isPrescriptionQuery = msg.Contains("prescription") || msg.Contains("dosage") ||
+                                         msg.Contains("medication") || msg.Contains("drug");
+                return isPrescriptionQuery && agentType != "clinical_assistant";
+            }">
+                <return-response>
+                    <set-status code="400" reason="Bad Request" />
+                    <set-body>@{
+                        return new JObject(
+                            new JProperty("error", "scope_limitation"),
+                            new JProperty("message", "Prescription medication advice requires the clinical assistant agent"),
+                            new JProperty("recommendation", "Please consult a healthcare professional or use the clinical assistant with proper credentials")
+                        ).ToString();
+                    }</set-body>
+                </return-response>
+            </when>
+        </choose>
+
+        <!-- Set agent-specific system prompts -->
+        <set-variable name="systemPrompt" value="@{
+            var agentType = (string)context.Variables["agentType"];
+
+            switch (agentType) {
+                case "skincare_consultant":
+                    return @"You are a knowledgeable skincare consultant AI assistant specialized in dermatology and skincare.
+
+Your role is to:
+- Provide personalized skincare routine recommendations
+- Explain skincare ingredients and their benefits
+- Help users understand their skin type and concerns
+- Suggest appropriate products for different skin types
+- Educate about sun protection and anti-aging
+
+Important guidelines:
+- Never diagnose medical conditions - recommend professional consultation for persistent issues
+- Focus on over-the-counter skincare products only
+- Always recommend sunscreen and sun protection
+- Be clear about ingredient interactions and potential sensitivities
+- Acknowledge limitations and when to see a dermatologist
+
+Always include a disclaimer that your advice is informational and not a substitute for professional medical advice.";
+
+                case "clinical_assistant":
+                    return @"You are a clinical dermatology assistant AI providing decision support for healthcare professionals.
+
+Your role is to:
+- Assist with differential diagnosis based on clinical presentations
+- Provide evidence-based treatment recommendations
+- Reference clinical guidelines and research
+- Support clinical decision-making with relevant information
+- Help with patient education materials
+
+Important guidelines:
+- All recommendations should cite evidence levels when available
+- Emphasize that final clinical decisions rest with the treating physician
+- Flag potential drug interactions and contraindications
+- Note when referral to specialist may be indicated
+- Maintain HIPAA compliance - never store identifiable patient information
+
+This assistant is for licensed healthcare professionals only. All clinical decisions remain the responsibility of the treating provider.";
+
+                case "product_advisor":
+                    return @"You are a skincare product advisor AI helping users find the right products for their needs.
+
+Your role is to:
+- Analyze skincare product ingredients
+- Recommend products based on skin type and concerns
+- Explain product formulations and their purposes
+- Compare products and ingredients
+- Identify potential ingredient conflicts
+
+Important guidelines:
+- Focus on ingredient science, not brand marketing
+- Note potential allergens and sensitivities
+- Recommend patch testing for new products
+- Be objective and evidence-based
+- Acknowledge that individual results vary
+
+Your advice is educational and not a substitute for consultation with a dermatologist for medical skin conditions.";
+
+                default:
+                    return "You are a helpful AI assistant.";
+            }
+        }" />
+
+        <!-- Add system prompt to request -->
+        <set-header name="X-System-Prompt" exists-action="override">
+            <value>@((string)context.Variables["systemPrompt"])</value>
+        </set-header>
+
+        <!-- Rate limiting per agent type -->
+        <choose>
+            <when condition="@((string)context.Variables["agentType"] == "clinical_assistant")">
+                <rate-limit-by-key calls="30" renewal-period="60" counter-key="@(context.Subscription.Id + "-clinical")" />
+            </when>
+            <otherwise>
+                <rate-limit-by-key calls="60" renewal-period="60" counter-key="@(context.Subscription.Id + "-agent")" />
+            </otherwise>
+        </choose>
+
+        <!-- Route to agent backend -->
+        <set-backend-service backend-id="{backend-id}" />
+    </inbound>
+
+    <backend>
+        <base />
+
+        <!-- Extended timeout for complex agent interactions -->
+        <retry condition="@(context.Response.StatusCode >= 500)" count="2" interval="2" first-fast-retry="false">
+            <forward-request timeout="60" />
+        </retry>
+    </backend>
+
+    <outbound>
+        <base />
+
+        <!-- Process agent responses -->
+        <choose>
+            <when condition="@(context.Response.StatusCode == 200)">
+                <set-variable name="responseBody" value="@(context.Response.Body.As<JObject>(preserveContent: true))" />
+
+                <!-- Add agent metadata and disclaimers -->
+                <set-body>@{
+                    var response = (JObject)context.Variables["responseBody"];
+                    var agentType = (string)context.Variables["agentType"];
+
+                    // Add agent metadata
+                    response["agent_metadata"] = new JObject(
+                        new JProperty("agent_type", agentType),
+                        new JProperty("session_id", context.Variables.GetValueOrDefault("sessionId", "")),
+                        new JProperty("timestamp", DateTime.UtcNow.ToString("o")),
+                        new JProperty("version", "1.0")
+                    );
+
+                    // Add appropriate disclaimer based on agent type
+                    switch (agentType) {
+                        case "skincare_consultant":
+                            response["disclaimer"] = "This advice is for informational purposes only and is not a substitute for professional medical advice. Consult a dermatologist for persistent skin concerns.";
+                            break;
+                        case "clinical_assistant":
+                            response["disclaimer"] = "Clinical decision support information only. All clinical decisions remain the responsibility of the treating healthcare provider. This does not constitute medical advice.";
+                            response["clinical_notice"] = "Evidence levels and recommendations should be verified against current clinical guidelines.";
+                            break;
+                        case "product_advisor":
+                            response["disclaimer"] = "Product recommendations are based on ingredient analysis and general skin type considerations. Individual results may vary. Patch test new products before full use.";
+                            break;
+                    }
+
+                    return response.ToString();
+                }</set-body>
+            </when>
+        </choose>
+
+        <!-- Add response headers -->
+        <set-header name="X-Agent-Type" exists-action="override">
+            <value>@((string)context.Variables["agentType"])</value>
+        </set-header>
+        <set-header name="X-Agent-Version" exists-action="override">
+            <value>1.0</value>
+        </set-header>
+        <set-header name="X-Session-Id" exists-action="override">
+            <value>@((string)context.Variables.GetValueOrDefault("sessionId", ""))</value>
+        </set-header>
+
+        <!-- Emit agent metrics -->
+        <emit-metric name="agent_request" value="1" namespace="dermatology_agents">
+            <dimension name="agent_type" value="@((string)context.Variables["agentType"])" />
+            <dimension name="operation" value="@(context.Operation.Id)" />
+            <dimension name="success" value="@(context.Response.StatusCode == 200 ? "true" : "false")" />
+        </emit-metric>
+    </outbound>
+
+    <on-error>
+        <base />
+
+        <!-- Handle agent-specific errors -->
+        <return-response>
+            <set-status code="500" reason="Agent Error" />
+            <set-body>@{
+                return new JObject(
+                    new JProperty("error", "agent_error"),
+                    new JProperty("message", "The agent encountered an error processing your request"),
+                    new JProperty("agent_type", (string)context.Variables.GetValueOrDefault("agentType", "unknown")),
+                    new JProperty("details", context.LastError.Message),
+                    new JProperty("request_id", context.RequestId)
+                ).ToString();
+            }</set-body>
+        </return-response>
+
+        <!-- Log agent errors -->
+        <emit-metric name="agent_error" value="1" namespace="dermatology_agents">
+            <dimension name="agent_type" value="@((string)context.Variables.GetValueOrDefault("agentType", "unknown"))" />
+            <dimension name="error_type" value="@(context.LastError.Reason)" />
+        </emit-metric>
+    </on-error>
+</policies>

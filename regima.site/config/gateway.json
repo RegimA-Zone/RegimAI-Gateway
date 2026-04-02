@@ -1,10 +1,17 @@
 {
   "gateway": {
     "name": "RegimAI Gateway",
-    "description": "AI Gateway for dermatology and skincare cognitive services",
+    "description": "AI Gateway for RégimA cosmeceutical skincare cognitive services",
     "version": "1.0.0",
     "domain": "dermatology",
-    "cognitiveArchitecture": "skintwin"
+    "cognitiveArchitecture": "skintwin",
+    "brand": {
+      "name": "RégimA",
+      "tagline": "Products That Change Lives",
+      "website": "https://regimazone.org",
+      "founded": 1996,
+      "distribution_model": "professional_only"
+    }
   },
   "services": {
     "ai-models": {
@@ -30,7 +37,7 @@
     "ai-agents": {
       "skincare-consultant": {
         "endpoint": "/agents/skincare-consultant",
-        "description": "AI agent for personalized skincare consultations",
+        "description": "RégimA AI agent for personalized skincare consultations using RégimA products",
         "capabilities": ["routine-analysis", "product-recommendation", "concern-assessment"],
         "policies": ["medical-disclaimer", "privacy-protection", "content-safety"]
       },
@@ -42,7 +49,7 @@
       },
       "product-advisor": {
         "endpoint": "/agents/product-advisor",
-        "description": "Product recommendation agent",
+        "description": "RégimA product recommendation agent for the RégimA cosmeceutical range",
         "capabilities": ["ingredient-analysis", "product-matching", "routine-optimization"],
         "policies": ["commercial-transparency", "content-safety"]
       }
@@ -170,9 +177,12 @@
     },
     "regima-platform": {
       "enabled": true,
+      "website": "https://regimazone.org",
       "user-profiles": "/platform/users",
       "product-catalog": "/platform/products",
-      "consultation-history": "/platform/consultations"
+      "consultation-history": "/platform/consultations",
+      "distribution-network": "/platform/distributors",
+      "testimonials": "/platform/testimonials"
     }
   }
 }

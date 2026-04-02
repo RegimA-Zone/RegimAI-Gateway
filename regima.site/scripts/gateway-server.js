@@ -381,18 +381,27 @@ class RegimAIGateway {
                     {
                         type: 'product',
                         category: 'cleanser',
-                        recommendation: 'Gentle foaming cleanser for combination skin',
-                        reasoning: 'Based on your skin type and current routine'
+                        recommendation: 'RégimA Derma Deep Rich Creamy Cleanser',
+                        reasoning: 'Essential first step in any RégimA routine for all skin types',
+                        url: 'https://regima.site/portfolio/derma-deep-rich-creamy-cleanser/'
+                    },
+                    {
+                        type: 'product',
+                        category: 'day_preparation',
+                        recommendation: skinType === 'oily' ? 'RégimA Daily Intelligent Sebum-Solver' : 'RégimA Daily Ultra Defence',
+                        reasoning: 'Day preparation matched to your skin type'
                     },
                     {
                         type: 'routine',
                         timeOfDay: 'morning',
-                        steps: ['cleanser', 'vitamin-c-serum', 'moisturizer', 'sunscreen'],
-                        reasoning: 'Protective morning routine for anti-aging goals'
+                        steps: ['RégimA Cleanser', 'Treatment product (if prescribed)', 'RégimA Day Preparation'],
+                        reasoning: 'RégimA product layering protocol — allow a minute between applications for penetration'
                     }
                 ],
                 confidence: 0.85,
-                disclaimer: 'This consultation is for informational purposes only and does not replace professional dermatological advice.'
+                disclaimer: 'This consultation is for informational purposes only. RégimA products are prescribed by doctors and trained skin care professionals. Consult your nearest RégimA professional. Visit https://regimazone.org',
+                brand: 'RégimA',
+                professional_note: 'RégimA products must be prescribed by a doctor or trained skin care professional. Do not combine with other product brands.'
             };
             
             this.updateServiceStats('skincare-consultant');
@@ -616,11 +625,12 @@ class RegimAIGateway {
                 agent: 'product_advisor',
                 analysis: { skinType: skinType || 'combination', concerns: concerns || [] },
                 recommendations: [
-                    { category: 'cleanser', suggestion: 'Gentle foaming cleanser', reason: 'Suitable for skin type' },
-                    { category: 'treatment', suggestion: 'Niacinamide serum', reason: 'Addresses concern' }
+                    { category: 'cleanser', suggestion: 'RégimA Derma Deep Rich Creamy Cleanser', reason: 'Essential for all RégimA routines' },
+                    { category: 'treatment', suggestion: concerns?.includes('acne') ? 'RégimA Acne Attack – Rescue Serum' : concerns?.includes('pigmentation') ? 'RégimA Pigment Perfector' : 'RégimA Techno 5', reason: 'Targeted treatment for your primary concern' },
+                    { category: 'day_preparation', suggestion: skinType === 'oily' ? 'RégimA Daily Intelligent Sebum-Solver' : 'RégimA Daily Ultra Defence', reason: 'Day preparation for your skin type' }
                 ],
-                ingredientConflicts: [],
-                disclaimer: 'Product recommendations are informational only.'
+                layering_protocol: 'Apply treatment products under day/night preparations. Allow a minute between applications for penetration.',
+                disclaimer: 'RégimA products must be prescribed by a RégimA-trained professional. Visit https://regimazone.org'
             };
             this.updateServiceStats('product-advisor');
             res.json(response);
@@ -664,16 +674,17 @@ class RegimAIGateway {
             const response = {
                 id: `routine-${Date.now()}`,
                 morning: [
-                    { step: 1, product: 'Cleanser', instruction: 'Gentle wash' },
-                    { step: 2, product: 'Serum', instruction: 'Apply vitamin C' },
-                    { step: 3, product: 'Moisturizer', instruction: 'Hydrate' },
-                    { step: 4, product: 'Sunscreen', instruction: 'SPF 30+' }
+                    { step: 1, product: 'RégimA Cleanser', instruction: 'Cleanse with Derma Deep Rich Creamy Cleanser' },
+                    { step: 2, product: 'Treatment (if prescribed)', instruction: 'Apply prescribed treatment product, wait 1 minute' },
+                    { step: 3, product: 'RégimA Day Preparation', instruction: 'Apply prescribed day product (e.g., Daily Ultra Defence or Daily Intelligent Sebum-Solver)' }
                 ],
                 evening: [
-                    { step: 1, product: 'Cleanser', instruction: 'Double cleanse' },
-                    { step: 2, product: 'Treatment', instruction: 'Apply active' },
-                    { step: 3, product: 'Moisturizer', instruction: 'Night cream' }
-                ]
+                    { step: 1, product: 'RégimA Cleanser', instruction: 'Cleanse with Derma Deep Rich Creamy Cleanser' },
+                    { step: 2, product: 'Treatment (if prescribed)', instruction: 'Apply prescribed treatment product, wait 1 minute' },
+                    { step: 3, product: 'RégimA Night Preparation', instruction: 'Apply prescribed night product' }
+                ],
+                layering_note: 'RégimA product layering protocol: Apply treatment products under day/night preparations. Allow a minute between applications for penetration.',
+                disclaimer: 'RégimA products must be prescribed by a doctor or trained skin care professional. Do not combine with other product brands. Visit https://regimazone.org'
             };
             this.updateServiceStats('routine-generator');
             res.json(response);

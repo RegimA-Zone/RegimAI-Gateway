@@ -9,7 +9,7 @@ def has_outputs_stored(file):
     
     for cell in notebook_content.get('cells', []):
         if cell.get('cell_type') == 'code' and cell.get('outputs'):
-            print(f"The notebook {filename} has outputs stored.", file=sys.stderr)
+            print(f"The notebook {file} has outputs stored.", file=sys.stderr)
             return True
     return False
 

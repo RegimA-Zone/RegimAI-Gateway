@@ -127,17 +127,71 @@ class SkinTwinCognitive {
         
         const ontologyData = {
             concepts: [
+                // Skin anatomy
                 'skin_anatomy', 'epidermis', 'dermis', 'hypodermis',
-                'acne', 'psoriasis', 'eczema', 'dermatitis', 'melanoma',
-                'moisturizer', 'cleanser', 'serum', 'sunscreen', 'retinol',
-                'vitamin_c', 'hyaluronic_acid', 'salicylic_acid', 'niacinamide',
+                // Conditions treated by RégimA
+                'acne', 'pigmentation', 'acne_scarring', 'scars', 'burns_trauma',
+                'stretch_marks', 'eczema', 'sun_damage', 'ageing', 'wrinkles',
+                'psoriasis', 'dermatitis', 'melanoma',
+                // RégimA Zone Philosophy - 3 Spheres
+                'zone_anti_inflammatory', 'zone_anti_oxidants', 'zone_rejuvenation',
+                // RégimA Products
+                'regima_techno_5', 'regima_super_smoother', 'regima_on_q_facial_oil',
+                'regima_epi_genes_xpress', 'regima_derma_deep_cleanser',
+                'regima_acne_attack_rescue_serum', 'regima_laser_azu_repair',
+                'regima_scar_repair_forte', 'regima_quantum_elastin_collagen',
+                'regima_pigment_perfector', 'regima_daily_ultra_defence',
+                'regima_daily_sebum_solver', 'regima_sensorial_daily_protector',
+                'regima_daily_radiant_boost', 'regima_eye_opener_serum',
+                'regima_new_expression_365', 'regima_double_whammy',
+                'regima_peel_heal_power_peel',
+                // RégimA Product Categories
+                'category_anti_ageing', 'category_cleansing_toning',
+                'category_day_preparations', 'category_night_preparations',
+                'category_eye_care', 'category_problem_skin',
+                'category_repairing', 'category_pigmentation',
+                'category_in_salon',
+                // RégimA Protocols
+                'product_layering', 'peel_and_heal', 'roaccutane_protocol',
+                // Generic ingredients
+                'retinol', 'vitamin_c', 'hyaluronic_acid', 'salicylic_acid',
+                'niacinamide', 'vitamin_a_topical',
+                // Generic concepts
                 'anti_aging', 'hydration', 'exfoliation', 'protection'
             ],
             relationships: [
+                // Zone philosophy relationships
+                { from: 'zone_anti_inflammatory', to: 'ageing', type: 'combats', strength: 0.95 },
+                { from: 'zone_anti_oxidants', to: 'ageing', type: 'combats', strength: 0.95 },
+                { from: 'zone_rejuvenation', to: 'ageing', type: 'combats', strength: 0.9 },
+                // Product-to-condition relationships
+                { from: 'regima_acne_attack_rescue_serum', to: 'acne', type: 'treats', strength: 0.9 },
+                { from: 'regima_pigment_perfector', to: 'pigmentation', type: 'treats', strength: 0.9 },
+                { from: 'regima_laser_azu_repair', to: 'scars', type: 'treats', strength: 0.9 },
+                { from: 'regima_laser_azu_repair', to: 'stretch_marks', type: 'treats', strength: 0.85 },
+                { from: 'regima_scar_repair_forte', to: 'scars', type: 'treats', strength: 0.92 },
+                { from: 'regima_scar_repair_forte', to: 'burns_trauma', type: 'treats', strength: 0.88 },
+                { from: 'regima_quantum_elastin_collagen', to: 'scars', type: 'treats', strength: 0.88 },
+                { from: 'regima_techno_5', to: 'ageing', type: 'treats', strength: 0.9 },
+                { from: 'regima_super_smoother', to: 'ageing', type: 'treats', strength: 0.88 },
+                { from: 'regima_epi_genes_xpress', to: 'ageing', type: 'treats', strength: 0.92 },
+                { from: 'regima_daily_sebum_solver', to: 'acne', type: 'supports', strength: 0.8 },
+                { from: 'regima_peel_heal_power_peel', to: 'pigmentation', type: 'treats', strength: 0.9 },
+                { from: 'regima_peel_heal_power_peel', to: 'acne_scarring', type: 'treats', strength: 0.88 },
+                { from: 'regima_peel_heal_power_peel', to: 'ageing', type: 'treats', strength: 0.85 },
+                // Product-to-category relationships
+                { from: 'regima_techno_5', to: 'category_anti_ageing', type: 'belongs_to', strength: 1.0 },
+                { from: 'regima_acne_attack_rescue_serum', to: 'category_problem_skin', type: 'belongs_to', strength: 1.0 },
+                { from: 'regima_derma_deep_cleanser', to: 'category_cleansing_toning', type: 'belongs_to', strength: 1.0 },
+                { from: 'regima_peel_heal_power_peel', to: 'category_in_salon', type: 'belongs_to', strength: 1.0 },
+                // Protocol relationships
+                { from: 'product_layering', to: 'pigmentation', type: 'essential_for', strength: 0.95 },
+                { from: 'peel_and_heal', to: 'regima_derma_deep_cleanser', type: 'requires', strength: 1.0 },
+                // Generic ingredient relationships (keep existing)
                 { from: 'retinol', to: 'anti_aging', type: 'treats', strength: 0.9 },
                 { from: 'hyaluronic_acid', to: 'hydration', type: 'provides', strength: 0.95 },
                 { from: 'salicylic_acid', to: 'acne', type: 'treats', strength: 0.85 },
-                { from: 'sunscreen', to: 'protection', type: 'provides', strength: 0.98 }
+                { from: 'vitamin_a_topical', to: 'ageing', type: 'treats', strength: 0.9 }
             ]
         };
         
@@ -227,7 +281,9 @@ class SkinTwinCognitive {
             conditions: ['acne', 'psoriasis', 'eczema', 'dermatitis', 'rosacea', 'melanoma', 'wrinkles', 'pigmentation'],
             ingredients: ['retinol', 'vitamin_c', 'hyaluronic_acid', 'salicylic_acid', 'niacinamide', 'peptides', 'ceramides'],
             products: ['moisturizer', 'cleanser', 'serum', 'sunscreen', 'toner', 'exfoliant', 'mask'],
-            concerns: ['anti_aging', 'hydration', 'acne_treatment', 'sun_protection', 'brightening', 'firming']
+            concerns: ['anti_aging', 'hydration', 'acne_treatment', 'sun_protection', 'brightening', 'firming'],
+            regima_products: ['techno 5', 'super smoother', 'acne attack', 'laser azu', 'scar repair', 'pigment perfector', 'daily ultra defence', 'sebum solver', 'eye opener', 'new expression', 'on q', 'epi-genes', 'quantum elastin', 'peel & heal', 'power peel', 'double whammy', 'derma deep', 'daily radiant boost', 'sensorial daily'],
+            regima_concepts: ['régima', 'regima', 'zone range', 'product layering', 'peel and heal', 'three spheres', 'cosmeceutical']
         };
 
         const extractedTerms = {};

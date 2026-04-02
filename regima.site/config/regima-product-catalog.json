@@ -1,0 +1,129 @@
+{
+  "brand": {
+    "name": "RégimA",
+    "tagline": "Products That Change Lives",
+    "founded": 1996,
+    "founder": "Jacqui Faucitt",
+    "headquarters": "50 Van Buuren Road, Bedfordview, 2008, Gauteng, South Africa",
+    "website": "https://regimazone.org",
+    "distribution_model": "professional_only",
+    "description": "A unique, advanced, medically accepted, results driven, anti-ageing, skin rejuvenating range manufactured exclusively for the use of doctors and skin care professionals."
+  },
+  "awards": [
+    "Best Skin Care Supplier In The Industry Award 2020",
+    "Best Skin Care Supplier In The Industry Award 2018",
+    "Best Skin Care Supplier In The Industry Award 2017",
+    "Pharmaceutical & Cosmetic Review Voted RégimA Zone Best New Product Range 2015",
+    "Best Skin Care Supplier In The Industry Award 2015",
+    "Best Training In The Industry Award 2013 + 2014",
+    "Award Winning Scar Repair"
+  ],
+  "zone_philosophy": {
+    "spheres": ["Anti-inflammatory", "Anti-oxidants", "Rejuvenation"],
+    "description": "The 2 main causes of skin ageing and ageing diseases are 'the silent killer' inflammation, and free radical damage. Zone products address individual skin issues, with active ingredients targeting each contributing factor at maximum clinically effective concentrations."
+  },
+  "product_categories": {
+    "anti_ageing": {
+      "name": "Anti-Ageing",
+      "url": "https://regima.site/products/anti-ageing/",
+      "products": [
+        { "name": "Techno 5", "url": "https://regima.site/portfolio/techno-5/" },
+        { "name": "Super Smoother", "url": "https://regima.site/portfolio/super-smoother/" },
+        { "name": "\"ON Q\" Quenching Facial Oil", "url": "https://regima.site/portfolio/on-q-quenching-facial-oil/" },
+        { "name": "Epi-Genes Xpress", "url": "https://regima.site/portfolio/epi-genes-xpress/" }
+      ]
+    },
+    "cleansing_toning": {
+      "name": "Cleansing / Toning",
+      "url": "https://regima.site/products/cleansing-toning/",
+      "products": [
+        { "name": "Derma Deep Rich Creamy Cleanser", "url": "https://regima.site/portfolio/derma-deep-rich-creamy-cleanser/" }
+      ]
+    },
+    "day_preparations": {
+      "name": "Day Preparations",
+      "url": "https://regima.site/products/day-preperations/",
+      "products": [
+        { "name": "Daily Ultra Defence", "url": "https://regima.site/portfolio/daily-ultra-defence/" },
+        { "name": "Daily Intelligent Sebum-Solver", "url": "https://regima.site/portfolio/daily-intelligent-sebum-solver/" },
+        { "name": "Sensorial Daily Protector", "url": "https://regima.site/portfolio/sensorial-daily-protector/" },
+        { "name": "Daily Radiant Boost", "url": "https://regima.site/portfolio/daily-radiant-boost/" }
+      ]
+    },
+    "eye_care": {
+      "name": "Eye Care",
+      "url": "https://regima.site/products/eye-care/",
+      "products": [
+        { "name": "Eye Opener Serum – Revolution Eyz", "url": "https://regima.site/portfolio/eye-opener-serum-revolution-eyz/" },
+        { "name": "New Expression-365", "url": "https://regima.site/portfolio/new-expression-365/" }
+      ]
+    },
+    "problem_skin": {
+      "name": "Problem Skin",
+      "url": "https://regima.site/products/problem-skin/",
+      "products": [
+        { "name": "Acne Attack – Rescue Serum", "url": "https://regima.site/portfolio/acne-attack-rescue-serum-2/" }
+      ]
+    },
+    "repairing": {
+      "name": "Repairing Scars / Stretch Marks / Wounds",
+      "url": "https://regima.site/products/repairing/",
+      "products": [
+        { "name": "Laser Azu-Repair", "url": "https://regima.site/portfolio/laser-azu-repair/" },
+        { "name": "Scar Repair Forté + Anti-Stretch Complex – Super Strength Serum", "url": "https://regima.site/portfolio/zone-scar-repair-forte-serum/" },
+        { "name": "Quantum Elastin-Collagen Revival", "url": "https://regima.site/portfolio/zone-quantum-elast-collagen-revival/" }
+      ]
+    },
+    "pigmentation": {
+      "name": "Pigmentation",
+      "url": "https://regima.site/products/pigmentation/",
+      "products": [
+        { "name": "Pigment Perfector" }
+      ]
+    },
+    "night_preparations": {
+      "name": "Night Preparations",
+      "url": "https://regima.site/products/night-preparations/"
+    },
+    "in_salon_treatments": {
+      "name": "In-Salon Treatments",
+      "url": "https://regima.site/products/in-salon-treatments/",
+      "products": [
+        { "name": "The Double Whammy", "url": "https://regima.site/portfolio/the-double-whammy/" },
+        { "name": "Peel & Heal Power Peel 30" },
+        { "name": "Peel & Heal Power Peel 50" }
+      ]
+    }
+  },
+  "treatment_areas": [
+    "Pigmentation", "Active Acne", "Acne Scarring", "Rejuvenation",
+    "Anti-Ageing", "Scars", "Burns & Trauma", "Stretch Marks",
+    "Eczema", "Pre/Post Surgery", "Pre/Post Laser", "Post Micro-Needling"
+  ],
+  "testimonial_categories": [
+    "Acne", "Burns & Trauma", "Child Burns & Trauma", "Eczema",
+    "Eyelashes", "Pigmentation", "Rejuvenation", "Scars & Stretchmarks"
+  ],
+  "distribution": {
+    "south_africa": { "name": "RégimA Head Office", "tel": "+27 11 615 2869", "email": "info@regima.com", "address": "50 Van Buuren Road, Bedfordview, 2008, Gauteng, South Africa" },
+    "united_kingdom": { "name": "RégimA UK", "tel": "+44 118 946 3018", "email": "uk@regima.zone", "website": "www.regimazone.uk" },
+    "malta": { "name": "CMS Bella", "tel": "+356 21647858", "email": "info@cmsbella.com" },
+    "europe": { "name": "RégimA Europe", "tel": "+41 76 497 92 99", "email": "info@regima.eu", "website": "www.regima.eu" },
+    "benelux": { "name": "Beauty Code Cosmetics", "tel": "+32 489 06 64 79", "email": "info@beautycodecosmetics.eu" },
+    "poland": { "name": "Artimed NZOZ", "tel": "+48 22 864 06 36", "website": "www.regima.pl" },
+    "italy": { "name": "Sophisticlin", "tel": "+39 333 94 12 108" },
+    "lithuania": { "name": "UAB Bioklinika", "tel": "+370 37 750866" },
+    "canada": { "name": "RégimA Skincare Canada Inc.", "tel": "+27 82 552 1340" },
+    "australia": { "name": "RégimA Australia", "tel": "+61 4268 18831", "email": "australia@regima.zone" },
+    "cameroon": { "name": "Madame La Belle Spa", "tel": "+23772375662" },
+    "namibia": { "name": "Croft Investments CC", "tel": "+26461301052" },
+    "nigeria": { "name": "Skin Esthetique Nig. Ltd", "tel": "+2348034237004" }
+  },
+  "key_protocols": {
+    "product_layering": "Layering of products is very important. Apply repairing or specific treatment products morning and night under the appropriate RégimA day and night preparations, allowing a minute between applications for penetration.",
+    "peel_and_heal": "Peel & Heal Power Peels must be performed by a doctor or trained skin care professional. Will not be applied to any patient not using RégimA home care essentials. Do not use any other products in combination with RégimA.",
+    "roaccutane_compatibility": "During Roaccutane treatment: RégimA Cleanser, Scar Repair Cream or Scar Repair Forté Serum am and pm with Daily Intelligent Sebum Solver.",
+    "pregnancy_safety": "Topical Vitamin A (as used in RégimA) is safe during pregnancy. Only systemic (oral) Vitamin A supplements should be avoided during the first trimester.",
+    "initial_adjustment": "Tingling, itchiness, dryness, flakiness, and pinkness may be experienced during the first few weeks. This is normal due to low pH and does not indicate allergy."
+  }
+}
